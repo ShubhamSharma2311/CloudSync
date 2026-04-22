@@ -1,0 +1,252 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CloudProvider {
+  AWS
+  GCP
+  AZURE
+}
+
+enum ResourceType {
+  COMPUTE
+  STORAGE
+  IDENTITY
+  SERVERLESS
+}
+
+enum ResourceStatus {
+  HEALTHY
+  ZOMBIE
+  BREACH
+  UNCERTAIN
+}
+
+enum ScanTrigger {
+  MANUAL
+  SCHEDULED
+  EVENT_WEBHOOK
+  DEMO
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESOLVED
+  EXPIRED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ConnectionStatus {
+  UNKNOWN
+  VERIFIED
+  INVALID
+  REVOKED
+}
+
+enum CostCategory {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model CloudAccount {
+  id                    String           @id @default(uuid()) @db.Uuid
+  provider              CloudProvider
+  externalAccountId     String           @map("external_account_id")
+  displayName           String           @map("display_name")
+  region                String?
+  credentialsCiphertext Bytes            @map("credentials_ciphertext")
+  credentialsMetadata   Json?            @map("credentials_metadata")
+  connectionStatus      ConnectionStatus @default(UNKNOWN) @map("connection_status")
+  lastVerifiedAt        DateTime?        @map("last_verified_at")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  scans         Scan[]
+  resources     Resource[]
+  proposals     Proposal[]
+  codeProposals CodeProposal[]
+
+  @@unique([provider, externalAccountId], map: "cloud_accounts_provider_external_account_id_key")
+  @@index([provider, connectionStatus], map: "cloud_accounts_provider_connection_status_idx")
+  @@map("cloud_accounts")
+}
+
+model Scan {
+  id             String        @id @default(uuid()) @db.Uuid
+  cloudAccountId String        @map("cloud_account_id") @db.Uuid
+  provider       CloudProvider
+  trigger        ScanTrigger
+  startedAt      DateTime      @default(now()) @map("started_at")
+  finishedAt     DateTime?     @map("finished_at")
+  issuesFound    Int           @default(0) @map("issues_found")
+  summary        Json?
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  cloudAccount  CloudAccount   @relation(fields: [cloudAccountId], references: [id], onDelete: Restrict)
+  resources     Resource[]     @relation("ScanResources")
+  proposals     Proposal[]
+  codeProposals CodeProposal[]
+  auditLogs     AuditLog[]
+
+  @@index([cloudAccountId, startedAt], map: "scans_cloud_account_id_started_at_idx")
+  @@index([provider, startedAt], map: "scans_provider_started_at_idx")
+  @@map("scans")
+}
+
+model Resource {
+  id                 String         @id @default(uuid()) @db.Uuid
+  cloudAccountId     String         @map("cloud_account_id") @db.Uuid
+  scanId             String         @map("scan_id") @db.Uuid
+  provider           CloudProvider
+  providerResourceId String         @map("provider_resource_id")
+  resourceType       ResourceType   @map("resource_type")
+  name               String
+  region             String?
+  status             ResourceStatus @default(HEALTHY)
+  costMonthly        Decimal?       @map("cost_monthly") @db.Decimal(12, 2)
+  lastSeenActive     DateTime?      @map("last_seen_active")
+  rawMetadata        Json           @map("raw_metadata")
+  tags               Json?
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  cloudAccount CloudAccount @relation(fields: [cloudAccountId], references: [id], onDelete: Restrict)
+  scan         Scan         @relation("ScanResources", fields: [scanId], references: [id], onDelete: Restrict)
+  proposals    Proposal[]
+  auditLogs    AuditLog[]
+
+  @@unique([cloudAccountId, provider, providerResourceId], map: "resources_cloud_account_id_provider_provider_resource_id_key")
+  @@index([provider, providerResourceId], map: "resources_provider_provider_resource_id_idx")
+  @@index([scanId], map: "resources_scan_id_idx")
+  @@index([status, provider], map: "resources_status_provider_idx")
+  @@index([cloudAccountId, status], map: "resources_cloud_account_id_status_idx")
+  @@map("resources")
+}
+
+model Proposal {
+  id                  String         @id @default(uuid()) @db.Uuid
+  cloudAccountId      String         @map("cloud_account_id") @db.Uuid
+  scanId              String         @map("scan_id") @db.Uuid
+  resourceId          String         @map("resource_id") @db.Uuid
+  issueType           String         @map("issue_type")
+  severity            Severity
+  status              ProposalStatus @default(PENDING)
+  title               String
+  description         String?        @db.Text
+  evidence            Json?
+  remediationCode     String         @map("remediation_code") @db.Text
+  estimatedSavingsUsd Decimal?       @map("estimated_savings_usd") @db.Decimal(12, 2)
+  confidenceScore     Int?           @map("confidence_score")
+  expiresAt           DateTime       @map("expires_at")
+  approvedBy          String?        @map("approved_by")
+  approvedAt          DateTime?      @map("approved_at")
+  executedAt          DateTime?      @map("executed_at")
+  resolvedAt          DateTime?      @map("resolved_at")
+  executionMetadata   Json?          @map("execution_metadata")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  cloudAccount CloudAccount @relation(fields: [cloudAccountId], references: [id], onDelete: Restrict)
+  scan         Scan         @relation(fields: [scanId], references: [id], onDelete: Restrict)
+  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+  auditLogs    AuditLog[]
+
+  @@index([scanId], map: "proposals_scan_id_idx")
+  @@index([resourceId, status], map: "proposals_resource_id_status_idx")
+  @@index([status, expiresAt], map: "proposals_status_expires_at_idx")
+  @@index([cloudAccountId, status], map: "proposals_cloud_account_id_status_idx")
+  @@map("proposals")
+}
+
+model CodeProposal {
+  id                    String         @id @default(uuid()) @db.Uuid
+  scanId                String?        @map("scan_id") @db.Uuid
+  cloudAccountId        String?        @map("cloud_account_id") @db.Uuid
+  filePath              String         @map("file_path")
+  lineNumber            Int            @map("line_number")
+  pattern               String
+  description           String         @db.Text
+  suggestion            String         @db.Text
+  costCategory          CostCategory   @map("cost_category")
+  status                ProposalStatus @default(PENDING)
+  billingCorrelationUsd Decimal?       @map("billing_correlation_usd") @db.Decimal(12, 2)
+  evidence              Json?
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  scan         Scan?         @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  cloudAccount CloudAccount? @relation(fields: [cloudAccountId], references: [id], onDelete: SetNull)
+
+  @@unique([scanId, filePath, lineNumber, pattern], map: "code_proposals_scan_id_file_path_line_number_pattern_key")
+  @@index([status, costCategory], map: "code_proposals_status_cost_category_idx")
+  @@index([filePath], map: "code_proposals_file_path_idx")
+  @@index([scanId], map: "code_proposals_scan_id_idx")
+  @@map("code_proposals")
+}
+
+model AuditLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  proposalId        String?  @map("proposal_id") @db.Uuid
+  resourceId        String?  @map("resource_id") @db.Uuid
+  scanId            String?  @map("scan_id") @db.Uuid
+  actorType         String   @map("actor_type")
+  actorId           String?  @map("actor_id")
+  action            String
+  outcome           String
+  details           Json?
+  preState          Json?    @map("pre_state")
+  postState         Json?    @map("post_state")
+  previousEntryHash String?  @map("previous_entry_hash")
+  entryHash         String   @unique(map: "audit_logs_entry_hash_key") @map("entry_hash")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  proposal Proposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  resource Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  scan     Scan?     @relation(fields: [scanId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt], map: "audit_logs_created_at_idx")
+  @@index([proposalId], map: "audit_logs_proposal_id_idx")
+  @@index([resourceId], map: "audit_logs_resource_id_idx")
+  @@index([scanId], map: "audit_logs_scan_id_idx")
+  @@map("audit_logs")
+}
+
+model SecurityPolicy {
+  id              String                       @id @default(uuid()) @db.Uuid
+  provider        CloudProvider
+  policySource    String                       @map("policy_source")
+  documentVersion String?                      @map("document_version")
+  ruleId          String                       @map("rule_id")
+  title           String
+  content         String                       @db.Text
+  severity        Severity?
+  metadata        Json?
+  embedding       Unsupported("vector(1536)")?
+  chunkIndex      Int                          @map("chunk_index")
+  createdAt       DateTime                     @default(now()) @map("created_at")
+  updatedAt       DateTime                     @updatedAt @map("updated_at")
+
+  @@unique([provider, policySource, ruleId, chunkIndex], map: "secpol_provider_source_rule_chunk_key")
+  @@index([provider, policySource], map: "secpol_provider_source_idx")
+  @@index([provider, ruleId], map: "security_policies_provider_rule_id_idx")
+  @@index([provider, severity], map: "security_policies_provider_severity_idx")
+  @@map("security_policies")
+}
