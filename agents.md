@@ -55,9 +55,8 @@ These were explicitly discussed and must hold across the entire codebase:
 14. Third API vertical is implemented for proposal listing and approve/reject decisions with expiry/state checks and audit logging.
 15. Cloud account connection verification endpoint is implemented with provider-mapped checks and connection status persistence.
 16. Scan creation now enforces VERIFIED connection status, blocking invalid/unverified account scans.
-17. Phase 3 Cloud Provider Abstraction Layer is implemented (`src/services/providers/`).
 
-### Pending to Fully Close Phase 1 (Deferred until DB is available)
+### Pending to Fully Close Phase 1
 
 1. Create and commit the first migration after stable `DATABASE_URL` is available.
 2. Run migration + seed on the target dev database and verify row counts/constraints.
