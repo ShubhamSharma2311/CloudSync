@@ -51,6 +51,7 @@ These were explicitly discussed and must hold across the entire codebase:
 10. Phase 2 backend structure has started with only these folders under src: controllers, routes, services, utils.
 11. First API vertical is implemented for cloud account onboarding/listing with strict layering.
 12. Express app bootstrap, centralized error handling, validation middleware, and request context middleware are in place.
+13. Second API vertical is implemented for scan creation/listing with the same strict layering flow.
 
 ### Pending to Fully Close Phase 1
 
