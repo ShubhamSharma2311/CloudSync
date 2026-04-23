@@ -24,7 +24,9 @@ const cloudAccountSelect = {
   updatedAt: true,
 } satisfies Prisma.CloudAccountSelect;
 
-const decodeCiphertext = (encodedCiphertext: string): Buffer => {
+const decodeCiphertext = (
+  encodedCiphertext: string
+): Uint8Array<ArrayBuffer> => {
   const trimmed = encodedCiphertext.trim();
   const decoded = Buffer.from(trimmed, "base64");
   const normalizedInput = trimmed.replace(/=+$/, "");
@@ -38,7 +40,11 @@ const decodeCiphertext = (encodedCiphertext: string): Buffer => {
     );
   }
 
-  return decoded;
+  const arrayBuffer = new ArrayBuffer(decoded.byteLength);
+  const bytes = new Uint8Array(arrayBuffer) as Uint8Array<ArrayBuffer>;
+  bytes.set(decoded);
+
+  return bytes;
 };
 
 const resolveRegion = (provider: CloudProvider, region?: string): string | null => {
