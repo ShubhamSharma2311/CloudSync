@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createScanController, listScansController } from "../controllers/scanController";
+import { createScanController, listScansController, runMockScanController } from "../controllers/scanController";
 import { attachRequestContext } from "../utils/requestContext";
 import { createScanSchema, listScansQuerySchema } from "../utils/scanSchemas";
 import { validateRequest } from "../utils/validation";
@@ -18,6 +18,12 @@ scanRouter.post(
   validateRequest({ body: createScanSchema }),
   attachRequestContext,
   createScanController
+);
+
+scanRouter.post(
+  "/:id/run",
+  attachRequestContext,
+  runMockScanController
 );
 
 export { scanRouter };
