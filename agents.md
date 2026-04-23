@@ -55,8 +55,9 @@ These were explicitly discussed and must hold across the entire codebase:
 14. Third API vertical is implemented for proposal listing and approve/reject decisions with expiry/state checks and audit logging.
 15. Cloud account connection verification endpoint is implemented with provider-mapped checks and connection status persistence.
 16. Scan creation now enforces VERIFIED connection status, blocking invalid/unverified account scans.
+17. Phase 3 Cloud Provider Abstraction Layer is implemented (`src/services/providers/`).
 
-### Pending to Fully Close Phase 1
+### Pending to Fully Close Phase 1 (Deferred until DB is available)
 
 1. Create and commit the first migration after stable `DATABASE_URL` is available.
 2. Run migration + seed on the target dev database and verify row counts/constraints.
@@ -137,5 +138,5 @@ These were explicitly discussed and must hold across the entire codebase:
 3. Verify each change against all non-negotiable requirements.
 4. If a requirement is violated, fix it immediately before moving forward.
 5. Keep this file updated with current status after meaningful progress.
-6. API implementation order must remain strict: payload validation first, then middleware, then controller, then route wiring.
+6. API implementation order must remain strict: first the payload monitoring/validation, then the middleware if needed, then the controller, followed by route wiring.
 7. Keep backend source structure minimal at top level: controllers, routes, services, utils.
