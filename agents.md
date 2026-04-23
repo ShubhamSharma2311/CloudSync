@@ -48,6 +48,9 @@ These were explicitly discussed and must hold across the entire codebase:
 7. Prisma seed/build scripts are configured in `backend/package.json`.
 8. Prisma client generation is aligned to best practice package output (`prisma-client-js`).
 9. Seed script is aligned to Prisma docs style (dotenv + pg pool + Prisma adapter + clean disconnect).
+10. Phase 2 backend structure has started with only these folders under src: controllers, routes, services, utils.
+11. First API vertical is implemented for cloud account onboarding/listing with strict layering.
+12. Express app bootstrap, centralized error handling, validation middleware, and request context middleware are in place.
 
 ### Pending to Fully Close Phase 1
 
@@ -130,3 +133,5 @@ These were explicitly discussed and must hold across the entire codebase:
 3. Verify each change against all non-negotiable requirements.
 4. If a requirement is violated, fix it immediately before moving forward.
 5. Keep this file updated with current status after meaningful progress.
+6. API implementation order must remain strict: payload validation first, then middleware, then controller, then route wiring.
+7. Keep backend source structure minimal at top level: controllers, routes, services, utils.
