@@ -53,6 +53,8 @@ These were explicitly discussed and must hold across the entire codebase:
 12. Express app bootstrap, centralized error handling, validation middleware, and request context middleware are in place.
 13. Second API vertical is implemented for scan creation/listing with the same strict layering flow.
 14. Third API vertical is implemented for proposal listing and approve/reject decisions with expiry/state checks and audit logging.
+15. Cloud account connection verification endpoint is implemented with provider-mapped checks and connection status persistence.
+16. Scan creation now enforces VERIFIED connection status, blocking invalid/unverified account scans.
 
 ### Pending to Fully Close Phase 1
 

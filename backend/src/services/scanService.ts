@@ -45,6 +45,17 @@ export const createScan = async (payload: CreateScanPayload) => {
     throw new AppError("Cloud account not found", 404, "CLOUD_ACCOUNT_NOT_FOUND");
   }
 
+  if (account.connectionStatus !== "VERIFIED") {
+    throw new AppError(
+      "Cloud account connection must be VERIFIED before scans can start",
+      409,
+      "CLOUD_ACCOUNT_NOT_VERIFIED",
+      {
+        connectionStatus: account.connectionStatus,
+      }
+    );
+  }
+
   const scan = await prisma.scan.create({
     data: {
       cloudAccountId: account.id,

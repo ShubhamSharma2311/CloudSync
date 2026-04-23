@@ -2,11 +2,14 @@ import type { RequestHandler } from "express";
 import {
   createCloudAccount,
   listCloudAccounts,
+  verifyCloudAccountConnection,
 } from "../services/cloudAccountService";
 import { asyncHandler } from "../utils/asyncHandler";
 import type {
   CreateCloudAccountPayload,
   ListCloudAccountsQuery,
+  VerifyCloudAccountParams,
+  VerifyCloudAccountPayload,
 } from "../utils/cloudAccountSchemas";
 
 export const createCloudAccountController: RequestHandler = asyncHandler(
@@ -30,6 +33,22 @@ export const listCloudAccountsController: RequestHandler = asyncHandler(
       requestId: res.locals.requestId ?? null,
       data: result.items,
       pagination: result.pagination,
+    });
+  }
+);
+
+export const verifyCloudAccountController: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const params = req.params as unknown as VerifyCloudAccountParams;
+    const payload = req.body as VerifyCloudAccountPayload;
+    const result = await verifyCloudAccountConnection(
+      params.cloudAccountId,
+      payload
+    );
+
+    res.status(200).json({
+      requestId: res.locals.requestId ?? null,
+      data: result,
     });
   }
 );

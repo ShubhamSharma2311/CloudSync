@@ -24,5 +24,18 @@ export const listCloudAccountsQuerySchema = z.object({
   connectionStatus: connectionStatusSchema.optional(),
 });
 
+export const verifyCloudAccountParamsSchema = z.object({
+  cloudAccountId: z.string().uuid(),
+});
+
+export const verifyCloudAccountBodySchema = z
+  .object({
+    actorId: z.string().trim().min(1).max(120).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .default({});
+
 export type CreateCloudAccountPayload = z.infer<typeof createCloudAccountSchema>;
 export type ListCloudAccountsQuery = z.infer<typeof listCloudAccountsQuerySchema>;
+export type VerifyCloudAccountParams = z.infer<typeof verifyCloudAccountParamsSchema>;
+export type VerifyCloudAccountPayload = z.infer<typeof verifyCloudAccountBodySchema>;

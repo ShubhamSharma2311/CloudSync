@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { CloudProvider, type Prisma } from "@prisma/client";
 import { AppError } from "../utils/appError";
 import type {
   CreateCloudAccountPayload,
   ListCloudAccountsQuery,
+  VerifyCloudAccountPayload,
 } from "../utils/cloudAccountSchemas";
 import { prisma } from "../utils/prisma";
 
@@ -23,6 +25,154 @@ const cloudAccountSelect = {
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.CloudAccountSelect;
+
+type VerificationStatus = "VERIFIED" | "INVALID";
+
+type VerificationResult = {
+  status: VerificationStatus;
+  reason: string;
+  evidence: Record<string, unknown>;
+};
+
+type ProviderVerifier = (
+  metadata: Prisma.JsonValue | null | undefined
+) => VerificationResult;
+
+const asRecord = (
+  value: Prisma.JsonValue | null | undefined
+): Record<string, unknown> | null => {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+};
+
+const readNonEmptyString = (
+  record: Record<string, unknown> | null,
+  key: string
+): string | null => {
+  if (!record) {
+    return null;
+  }
+
+  const value = record[key];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const providerVerifierMap = new Map<CloudProvider, ProviderVerifier>([
+  [
+    CloudProvider.AWS,
+    (metadata) => {
+      const record = asRecord(metadata);
+      const roleArn = readNonEmptyString(record, "roleArn");
+      const externalId = readNonEmptyString(record, "externalId");
+
+      if (roleArn) {
+        return {
+          status: "VERIFIED",
+          reason: "AWS metadata includes a roleArn for AssumeRole flow",
+          evidence: {
+            hasRoleArn: true,
+            hasExternalId: Boolean(externalId),
+          },
+        };
+      }
+
+      return {
+        status: "INVALID",
+        reason: "AWS verification requires roleArn in credentials metadata",
+        evidence: {
+          hasRoleArn: false,
+        },
+      };
+    },
+  ],
+  [
+    CloudProvider.GCP,
+    (metadata) => {
+      const record = asRecord(metadata);
+      const projectId = readNonEmptyString(record, "projectId");
+      const serviceAccountEmail = readNonEmptyString(record, "serviceAccountEmail");
+
+      if (projectId && serviceAccountEmail) {
+        return {
+          status: "VERIFIED",
+          reason: "GCP metadata includes projectId and serviceAccountEmail",
+          evidence: {
+            hasProjectId: true,
+            hasServiceAccountEmail: true,
+          },
+        };
+      }
+
+      return {
+        status: "INVALID",
+        reason:
+          "GCP verification requires both projectId and serviceAccountEmail in metadata",
+        evidence: {
+          hasProjectId: Boolean(projectId),
+          hasServiceAccountEmail: Boolean(serviceAccountEmail),
+        },
+      };
+    },
+  ],
+  [
+    CloudProvider.AZURE,
+    (metadata) => {
+      const record = asRecord(metadata);
+      const tenantId = readNonEmptyString(record, "tenantId");
+      const clientId = readNonEmptyString(record, "clientId");
+      const subscriptionId = readNonEmptyString(record, "subscriptionId");
+
+      if (tenantId && clientId && subscriptionId) {
+        return {
+          status: "VERIFIED",
+          reason:
+            "Azure metadata includes tenantId, clientId, and subscriptionId",
+          evidence: {
+            hasTenantId: true,
+            hasClientId: true,
+            hasSubscriptionId: true,
+          },
+        };
+      }
+
+      return {
+        status: "INVALID",
+        reason:
+          "Azure verification requires tenantId, clientId, and subscriptionId in metadata",
+        evidence: {
+          hasTenantId: Boolean(tenantId),
+          hasClientId: Boolean(clientId),
+          hasSubscriptionId: Boolean(subscriptionId),
+        },
+      };
+    },
+  ],
+]);
+
+const verifyByProvider = (
+  provider: CloudProvider,
+  metadata: Prisma.JsonValue | null | undefined
+): VerificationResult => {
+  const verifier = providerVerifierMap.get(provider);
+
+  if (!verifier) {
+    throw new AppError(
+      `No verifier configured for provider ${provider}`,
+      500,
+      "PROVIDER_VERIFIER_NOT_CONFIGURED"
+    );
+  }
+
+  return verifier(metadata);
+};
 
 const decodeCiphertext = (
   encodedCiphertext: string
@@ -121,6 +271,83 @@ export const listCloudAccounts = async (query: ListCloudAccountsQuery) => {
       limit,
       total,
       totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
+  };
+};
+
+export const verifyCloudAccountConnection = async (
+  cloudAccountId: string,
+  payload: VerifyCloudAccountPayload
+) => {
+  const account = await prisma.cloudAccount.findUnique({
+    where: { id: cloudAccountId },
+    select: {
+      id: true,
+      provider: true,
+      connectionStatus: true,
+      credentialsMetadata: true,
+    },
+  });
+
+  if (!account) {
+    throw new AppError("Cloud account not found", 404, "CLOUD_ACCOUNT_NOT_FOUND");
+  }
+
+  const verification = verifyByProvider(
+    account.provider,
+    account.credentialsMetadata
+  );
+  const now = new Date();
+  const requestMetadata = payload.metadata as Prisma.InputJsonValue | undefined;
+
+  const updatedAccount = await prisma.$transaction(async (tx) => {
+    const updated = await tx.cloudAccount.update({
+      where: { id: account.id },
+      data: {
+        connectionStatus: verification.status,
+        lastVerifiedAt: verification.status === "VERIFIED" ? now : null,
+      },
+      select: cloudAccountSelect,
+    });
+
+    const previousAuditEntry = await tx.auditLog.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { entryHash: true },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        actorType: "USER",
+        actorId: payload.actorId ?? "api.user",
+        action: "CLOUD_ACCOUNT_CONNECTION_VERIFICATION",
+        outcome: verification.status === "VERIFIED" ? "SUCCESS" : "FAILED",
+        details: {
+          provider: account.provider,
+          reason: verification.reason,
+          evidence: verification.evidence,
+          requestMetadata: requestMetadata ?? null,
+        } as Prisma.InputJsonValue,
+        preState: {
+          connectionStatus: account.connectionStatus,
+        } as Prisma.InputJsonValue,
+        postState: {
+          connectionStatus: verification.status,
+        } as Prisma.InputJsonValue,
+        previousEntryHash: previousAuditEntry?.entryHash ?? null,
+        entryHash: randomUUID(),
+      },
+    });
+
+    return updated;
+  });
+
+  return {
+    account: updatedAccount,
+    verification: {
+      status: verification.status,
+      reason: verification.reason,
+      checkedAt: now,
+      evidence: verification.evidence,
     },
   };
 };
