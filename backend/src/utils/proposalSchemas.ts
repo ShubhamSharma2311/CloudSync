@@ -9,6 +9,12 @@ export const proposalStatusSchema = z.enum([
 ]);
 
 export const severitySchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+export const resourceStatusSchema = z.enum([
+  "HEALTHY",
+  "ZOMBIE",
+  "BREACH",
+  "UNCERTAIN",
+]);
 
 export const listProposalsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -33,6 +39,21 @@ export const proposalDecisionSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+export const proposalExecutionParamsSchema = z.object({
+  proposalId: z.string().uuid(),
+});
+
+export const proposalExecutionSchema = z.object({
+  actorId: z.string().trim().min(1).max(120),
+  mfaCode: z.string().trim().min(6).max(12).optional(),
+  reason: z.string().trim().min(1).max(500).optional(),
+  expectedResourceStatus: resourceStatusSchema.optional(),
+  expectedResourceUpdatedAt: z.coerce.date().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
 export type ListProposalsQuery = z.infer<typeof listProposalsQuerySchema>;
 export type ProposalDecisionParams = z.infer<typeof proposalDecisionParamsSchema>;
 export type ProposalDecisionPayload = z.infer<typeof proposalDecisionSchema>;
+export type ProposalExecutionParams = z.infer<typeof proposalExecutionParamsSchema>;
+export type ProposalExecutionPayload = z.infer<typeof proposalExecutionSchema>;

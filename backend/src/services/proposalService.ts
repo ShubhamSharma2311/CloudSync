@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   type Prisma,
   type ProposalStatus,
+  type ResourceStatus,
   type Severity,
 } from "@prisma/client";
 import { AppError } from "../utils/appError";
@@ -9,6 +10,7 @@ import { prisma } from "../utils/prisma";
 import type {
   ListProposalsQuery,
   ProposalDecisionPayload,
+  ProposalExecutionPayload,
 } from "../utils/proposalSchemas";
 
 const proposalSelect = {
@@ -50,6 +52,9 @@ const decisionActionMap = new Map<
   ["APPROVE", "PROPOSAL_APPROVED"],
   ["REJECT", "PROPOSAL_REJECTED"],
 ]);
+
+const executableStatuses = new Set<ProposalStatus>(["APPROVED"]);
+const mfaRequiredSeverities = new Set<Severity>(["HIGH", "CRITICAL"]);
 
 const buildExpiryFilter = (
   query: ListProposalsQuery
@@ -207,5 +212,202 @@ export const decideProposal = async (
     });
 
     return updated;
+  });
+};
+
+const asRecord = (
+  value: Prisma.JsonValue | null | undefined
+): Record<string, unknown> => {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+};
+
+export const executeProposal = async (
+  proposalId: string,
+  payload: ProposalExecutionPayload
+) => {
+  const now = new Date();
+
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`
+      SELECT id
+      FROM proposals
+      WHERE id = ${proposalId}::uuid
+      FOR UPDATE
+    `;
+
+    const proposal = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      select: {
+        id: true,
+        status: true,
+        severity: true,
+        expiresAt: true,
+        resourceId: true,
+        scanId: true,
+        executionMetadata: true,
+      },
+    });
+
+    if (!proposal) {
+      throw new AppError("Proposal not found", 404, "PROPOSAL_NOT_FOUND");
+    }
+
+    if (!executableStatuses.has(proposal.status)) {
+      throw new AppError(
+        "Only approved proposals can be executed",
+        409,
+        "INVALID_PROPOSAL_STATUS_FOR_EXECUTION",
+        {
+          currentStatus: proposal.status,
+        }
+      );
+    }
+
+    if (proposal.expiresAt <= now) {
+      await tx.proposal.update({
+        where: { id: proposal.id },
+        data: {
+          status: "EXPIRED",
+        },
+      });
+
+      throw new AppError(
+        "Proposal has expired and cannot be executed",
+        409,
+        "PROPOSAL_EXPIRED"
+      );
+    }
+
+    const requiresMfa = mfaRequiredSeverities.has(proposal.severity);
+    if (requiresMfa && !payload.mfaCode) {
+      throw new AppError(
+        "MFA code is required to execute high-risk proposals",
+        401,
+        "MFA_REQUIRED"
+      );
+    }
+
+    await tx.$queryRaw`
+      SELECT id
+      FROM resources
+      WHERE id = ${proposal.resourceId}::uuid
+      FOR UPDATE
+    `;
+
+    const resource = await tx.resource.findUnique({
+      where: { id: proposal.resourceId },
+      select: {
+        id: true,
+        status: true,
+        updatedAt: true,
+        provider: true,
+        providerResourceId: true,
+      },
+    });
+
+    if (!resource) {
+      throw new AppError(
+        "Resource not found for proposal execution",
+        409,
+        "PROPOSAL_RESOURCE_NOT_FOUND"
+      );
+    }
+
+    if (
+      payload.expectedResourceStatus &&
+      resource.status !== (payload.expectedResourceStatus as ResourceStatus)
+    ) {
+      throw new AppError(
+        "Resource state changed before execution",
+        409,
+        "PRE_EXECUTION_STATE_CHANGED",
+        {
+          expectedStatus: payload.expectedResourceStatus,
+          actualStatus: resource.status,
+        }
+      );
+    }
+
+    if (
+      payload.expectedResourceUpdatedAt &&
+      resource.updatedAt.getTime() !== payload.expectedResourceUpdatedAt.getTime()
+    ) {
+      throw new AppError(
+        "Resource update timestamp changed before execution",
+        409,
+        "PRE_EXECUTION_TIMESTAMP_CHANGED",
+        {
+          expectedResourceUpdatedAt: payload.expectedResourceUpdatedAt,
+          actualResourceUpdatedAt: resource.updatedAt,
+        }
+      );
+    }
+
+    const previousExecutionMetadata = asRecord(proposal.executionMetadata);
+    const mergedExecutionMetadata = {
+      ...previousExecutionMetadata,
+      execution: {
+        executedBy: payload.actorId,
+        executedAt: now.toISOString(),
+        reason: payload.reason ?? null,
+        mode: "SIMULATED",
+        mfaValidated: requiresMfa,
+        expectedResourceStatus: payload.expectedResourceStatus ?? null,
+        resourceStatusAtExecution: resource.status,
+        resourceUpdatedAtAtExecution: resource.updatedAt.toISOString(),
+        metadata: payload.metadata ?? null,
+      },
+    } as Prisma.InputJsonValue;
+
+    const updatedProposal = await tx.proposal.update({
+      where: { id: proposal.id },
+      data: {
+        status: "RESOLVED",
+        executedAt: now,
+        resolvedAt: now,
+        executionMetadata: mergedExecutionMetadata,
+      },
+      select: proposalSelect,
+    });
+
+    const previousAuditEntry = await tx.auditLog.findFirst({
+      where: { proposalId: proposal.id },
+      orderBy: { createdAt: "desc" },
+      select: { entryHash: true },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        proposalId: proposal.id,
+        resourceId: proposal.resourceId,
+        scanId: proposal.scanId,
+        actorType: "USER",
+        actorId: payload.actorId,
+        action: "PROPOSAL_EXECUTED",
+        outcome: "SUCCESS",
+        details: {
+          mode: "SIMULATED",
+          reason: payload.reason ?? null,
+          mfaValidated: requiresMfa,
+          metadata: payload.metadata ?? null,
+        } as Prisma.InputJsonValue,
+        preState: {
+          proposalStatus: proposal.status,
+          resourceStatus: resource.status,
+        } as Prisma.InputJsonValue,
+        postState: {
+          proposalStatus: updatedProposal.status,
+          executedAt: updatedProposal.executedAt?.toISOString() ?? null,
+        } as Prisma.InputJsonValue,
+        previousEntryHash: previousAuditEntry?.entryHash ?? null,
+        entryHash: randomUUID(),
+      },
+    });
+
+    return updatedProposal;
   });
 };
