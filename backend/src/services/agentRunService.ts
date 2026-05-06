@@ -19,6 +19,7 @@ import { getLogger } from "../utils/logger";
 import { NotFoundError } from "../utils/errors";
 import { analyzeResource } from "../agent/gemini";
 import type { AgentProposal } from "../agent/schemas";
+import { notifyOnProposal } from "./notificationService";
 
 type RunAgentResult = {
   scanId: string;
@@ -144,6 +145,18 @@ const persistProposal = async (
       } as Prisma.InputJsonValue,
     },
     select: { id: true },
+  });
+
+  // Fire a notification for MEDIUM+ findings — recorded as audit log entry
+  // for now; Phase 8.x will pipe these to Slack/email/webhook.
+  await notifyOnProposal({
+    proposalId: created.id,
+    resourceId: resource.id,
+    scanId: scan.id,
+    severity: proposal.severity as Severity,
+    issueType: proposal.issueType,
+    title: proposal.title,
+    estimatedSavingsUsd: proposal.estimatedSavingsUsd,
   });
 
   // Audit log: PROPOSAL_GENERATED is the genesis entry on this proposal's

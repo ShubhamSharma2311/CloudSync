@@ -149,7 +149,27 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.ZOMBIE,
       costMonthly: "78.40",
       lastSeenActive: demoDate(47),
-      rawMetadata: { cpuAvg30d: 1.2, state: "running" },
+      // Default CloudWatch metrics only — no CWAgent on this instance, so no
+      // memory data. The agent should still flag this as ZOMBIE on CPU+network
+      // alone, and recommend installing CWAgent for RAM-based right-sizing.
+      rawMetadata: {
+        state: "running",
+        instanceType: "m5.large",
+        instanceSpec: { vcpus: 2, memoryMb: 8192, ebsOptimized: true },
+        metrics30d: {
+          windowDays: 30,
+          source: "cloudwatch",
+          cpu: { avgPct: 1.2, p95Pct: 2.8, peakPct: 4.1, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 5400,
+            avgOutBytesPerSec: 2100,
+            peakInBytesPerSec: 22000,
+            peakOutBytesPerSec: 9100,
+          },
+          diskIO: { avgReadIops: 4, avgWriteIops: 2, peakReadIops: 18, peakWriteIops: 8 },
+          // memory: not present — CWAgent not installed
+        },
+      },
       tags: { env: "dev", owner: "platform" },
     },
     {
@@ -162,7 +182,34 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.ZOMBIE,
       costMonthly: "62.10",
       lastSeenActive: demoDate(61),
-      rawMetadata: { cpuAvg30d: 0.6, state: "running" },
+      // CWAgent IS installed here → memory data available. Bursts during
+      // nightly batch window; idle 23h/day. Strong candidate for Lambda or
+      // Fargate Spot.
+      rawMetadata: {
+        state: "running",
+        instanceType: "m5.large",
+        instanceSpec: { vcpus: 2, memoryMb: 8192, ebsOptimized: true },
+        metrics30d: {
+          windowDays: 30,
+          source: "cloudwatch",
+          cpu: { avgPct: 0.6, p95Pct: 1.4, peakPct: 22.0, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 1100,
+            avgOutBytesPerSec: 800,
+            peakInBytesPerSec: 540000,
+            peakOutBytesPerSec: 290000,
+          },
+          diskIO: { avgReadIops: 2, avgWriteIops: 1, peakReadIops: 320, peakWriteIops: 180 },
+          memory: {
+            source: "cwagent",
+            avgBytes: 188_743_680, // ~180MB
+            p95Bytes: 293_601_280,
+            peakBytes: 2_202_009_600, // ~2.1GB during batch
+            allocatedBytes: 8_589_934_592, // 8GB
+          },
+          activeHoursPerDay: 0.8,
+        },
+      },
       tags: { env: "staging" },
     },
     {
@@ -175,7 +222,25 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.ZOMBIE,
       costMonthly: "54.25",
       lastSeenActive: demoDate(39),
-      rawMetadata: { cpuAvg30d: 1.0, state: "RUNNING" },
+      // No Ops Agent installed → CPU + network only. Same "install agent for
+      // memory" recommendation path as the AWS zombie above.
+      rawMetadata: {
+        state: "RUNNING",
+        instanceType: "e2-medium",
+        instanceSpec: { vcpus: 2, memoryMb: 4096, sharedCore: true },
+        metrics30d: {
+          windowDays: 30,
+          source: "cloud-monitoring",
+          cpu: { avgPct: 1.0, p95Pct: 2.0, peakPct: 2.5, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 2300,
+            avgOutBytesPerSec: 1100,
+            peakInBytesPerSec: 8400,
+            peakOutBytesPerSec: 3900,
+          },
+          diskIO: { avgReadIops: 3, avgWriteIops: 1, peakReadIops: 12, peakWriteIops: 5 },
+        },
+      },
       tags: { env: "qa" },
     },
     {
@@ -214,7 +279,41 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.UNCERTAIN,
       costMonthly: "31.75",
       lastSeenActive: demoDate(0),
-      rawMetadata: { memoryMb: 3072, avgMemoryMb: 128, avgDurationMs: 920 },
+      // Lambda Insights extension is enabled → memory data available.
+      // 3072MB allocated, peak ~180MB. Massively over-provisioned; could drop
+      // to 256MB and still have headroom.
+      rawMetadata: {
+        runtime: "nodejs20.x",
+        instanceSpec: { allocatedMemoryMb: 3072 },
+        metrics30d: {
+          windowDays: 30,
+          source: "cloudwatch",
+          cpu: { avgPct: 8.5, p95Pct: 18.0, peakPct: 32.0, sampleCount: 4320 },
+          network: {
+            avgInBytesPerSec: 12000,
+            avgOutBytesPerSec: 8400,
+            peakInBytesPerSec: 180000,
+            peakOutBytesPerSec: 95000,
+          },
+          diskIO: { avgReadIops: 0, avgWriteIops: 0, peakReadIops: 0, peakWriteIops: 0 },
+          memory: {
+            source: "lambda-insights",
+            avgBytes: 134_217_728, // ~128MB
+            p95Bytes: 167_772_160,
+            peakBytes: 188_743_680, // ~180MB
+            allocatedBytes: 3_221_225_472, // 3GB
+          },
+          serverless: {
+            invocations: 2_400_000,
+            errors: 1840,
+            p50DurationMs: 720,
+            p95DurationMs: 1180,
+            p99DurationMs: 1520,
+            throttles: 0,
+            concurrentExecutionsP95: 18,
+          },
+        },
+      },
       tags: { env: "prod" },
     },
     {
@@ -227,7 +326,46 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.HEALTHY,
       costMonthly: "210.00",
       lastSeenActive: demoDate(0),
-      rawMetadata: { cpuAvg7d: 44, storageFreeGb: 320 },
+      // RDS managed service → FreeableMemory + DatabaseConnections + IOPS all
+      // come from default CloudWatch metrics, no agent needed.
+      rawMetadata: {
+        engine: "postgres",
+        engineVersion: "15.4",
+        instanceType: "db.m6g.xlarge",
+        instanceSpec: { vcpus: 4, memoryMb: 16384, allocatedStorageGb: 500 },
+        multiAz: true,
+        metrics30d: {
+          windowDays: 30,
+          source: "cloudwatch",
+          cpu: { avgPct: 44.0, p95Pct: 62.0, peakPct: 78.0, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 410000,
+            avgOutBytesPerSec: 1_120_000,
+            peakInBytesPerSec: 2_400_000,
+            peakOutBytesPerSec: 6_800_000,
+          },
+          diskIO: {
+            avgReadIops: 180,
+            avgWriteIops: 220,
+            peakReadIops: 890,
+            peakWriteIops: 1240,
+          },
+          memory: {
+            source: "rds-default",
+            avgBytes: 4_509_715_456, // ~4.2GB used
+            p95Bytes: 6_120_000_000,
+            peakBytes: 7_300_000_000, // peak ~6.8GB
+            allocatedBytes: 17_179_869_184, // 16GB
+          },
+          database: {
+            avgConnections: 18,
+            peakConnections: 42,
+            avgReadLatencyMs: 0.4,
+            avgWriteLatencyMs: 1.2,
+            freeStorageBytes: 343_597_383_680, // ~320GB free out of 500
+          },
+        },
+      },
       tags: { env: "prod" },
     },
     {
@@ -240,7 +378,34 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.HEALTHY,
       costMonthly: "134.00",
       lastSeenActive: demoDate(0),
-      rawMetadata: { powerState: "VM running", cpuAvg7d: 39 },
+      // Azure Monitor Agent installed → memory + diskFree available alongside
+      // default CPU/network. CPU peaks ~39% but memory caps at 27% — strong
+      // right-sizing candidate (D4s_v5 → D2s_v5 saves ~$65/mo).
+      rawMetadata: {
+        powerState: "VM running",
+        instanceType: "Standard_D4s_v5",
+        instanceSpec: { vcpus: 4, memoryMb: 16384, premiumDisk: true },
+        osType: "Linux",
+        metrics30d: {
+          windowDays: 30,
+          source: "azure-monitor",
+          cpu: { avgPct: 18.0, p95Pct: 32.0, peakPct: 39.0, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 84000,
+            avgOutBytesPerSec: 56000,
+            peakInBytesPerSec: 320000,
+            peakOutBytesPerSec: 210000,
+          },
+          diskIO: { avgReadIops: 28, avgWriteIops: 14, peakReadIops: 180, peakWriteIops: 92 },
+          memory: {
+            source: "azure-monitor-agent",
+            avgBytes: 3_355_443_200, // ~3.2GB
+            p95Bytes: 4_294_967_296, // ~4GB
+            peakBytes: 4_700_000_000, // ~4.5GB peak
+            allocatedBytes: 17_179_869_184, // 16GB
+          },
+        },
+      },
       tags: { env: "prod" },
     },
     {
@@ -266,7 +431,41 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.HEALTHY,
       costMonthly: "49.20",
       lastSeenActive: demoDate(0),
-      rawMetadata: { engine: "redis", evictionsPerHour: 0 },
+      // ElastiCache managed → all the memory + cache metrics come from default
+      // CloudWatch (BytesUsedForCache, Evictions, CacheHitRate, etc.).
+      // 0 evictions and only ~22% memory used → over-provisioned.
+      rawMetadata: {
+        engine: "redis",
+        engineVersion: "7.0",
+        instanceType: "cache.m5.large",
+        instanceSpec: { vcpus: 2, memoryMb: 6379 },
+        replicationEnabled: true,
+        metrics30d: {
+          windowDays: 30,
+          source: "cloudwatch",
+          cpu: { avgPct: 14.0, p95Pct: 24.0, peakPct: 31.0, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 92000,
+            avgOutBytesPerSec: 124000,
+            peakInBytesPerSec: 480000,
+            peakOutBytesPerSec: 612000,
+          },
+          diskIO: { avgReadIops: 0, avgWriteIops: 0, peakReadIops: 0, peakWriteIops: 0 },
+          memory: {
+            source: "elasticache-default",
+            avgBytes: 1_476_395_008, // ~1.4GB used
+            p95Bytes: 2_147_483_648, // ~2GB
+            peakBytes: 2_550_136_832, // ~2.4GB peak
+            allocatedBytes: 6_690_088_960, // ~6.4GB
+          },
+          cache: {
+            evictions: 0,
+            cacheHitRate: 0.94,
+            avgConnections: 78,
+            peakConnections: 142,
+          },
+        },
+      },
       tags: { env: "prod" },
     },
     {
@@ -292,7 +491,41 @@ async function seedResources(): Promise<void> {
       status: ResourceStatus.HEALTHY,
       costMonthly: "26.10",
       lastSeenActive: demoDate(0),
-      rawMetadata: { minInstances: 1, avgLatencyMs: 140 },
+      // Cloud Run managed → memory + invocations from default Cloud Monitoring.
+      // 1 min-instance is paid 24/7 even when idle. Healthy P95 latency.
+      rawMetadata: {
+        runtime: "containerized",
+        minInstances: 1,
+        maxInstances: 100,
+        instanceSpec: { vcpus: 1, memoryMb: 512 },
+        metrics30d: {
+          windowDays: 30,
+          source: "cloud-monitoring",
+          cpu: { avgPct: 22.0, p95Pct: 48.0, peakPct: 71.0, sampleCount: 8640 },
+          network: {
+            avgInBytesPerSec: 45000,
+            avgOutBytesPerSec: 78000,
+            peakInBytesPerSec: 240000,
+            peakOutBytesPerSec: 410000,
+          },
+          diskIO: { avgReadIops: 0, avgWriteIops: 0, peakReadIops: 0, peakWriteIops: 0 },
+          memory: {
+            source: "cloud-run-default",
+            avgBytes: 184_549_376, // ~176MB
+            p95Bytes: 268_435_456,
+            peakBytes: 322_961_408, // ~308MB
+            allocatedBytes: 536_870_912, // 512MB
+          },
+          serverless: {
+            invocations: 1_200_000,
+            errors: 480,
+            p50DurationMs: 110,
+            p95DurationMs: 240,
+            p99DurationMs: 420,
+            avgLatencyMs: 140,
+          },
+        },
+      },
       tags: { env: "prod" },
     },
     {

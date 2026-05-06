@@ -50,7 +50,15 @@ B. The resource's observedStatus is ZOMBIE, BREACH, or UNCERTAIN — these are p
    - ZOMBIE → unused/idle resource burning money. Issue type ZOMBIE_RESOURCE. Propose deletion or scale-down. Estimate savings from costMonthlyUsd. citedRuleIds=[].
    - BREACH → security incident or compliance violation. Issue type from context (e.g. PUBLIC_STORAGE, INSECURE_IAM). Propose immediate lockdown. Cite the matching CIS rule if any.
    - UNCERTAIN → ambiguous signal in rawMetadata. Issue type INVESTIGATION_NEEDED. Propose a check/audit action with lower confidenceScore (40-60).
-C. Strong evidence in rawMetadata of waste (e.g. memory_mb=3072 with avg_used_mb=120 is OVERPROVISIONED) even when no explicit rule covers it.
+C. Right-sizing opportunity from rawMetadata.metrics30d (the 30-day usage window from the cloud's monitoring API):
+   - **CPU under-utilized**: cpu.avgPct < 5% AND cpu.peakPct < 25% over the window → recommend a smaller instance class (e.g. m5.large → t3.medium).
+   - **Memory over-allocated**: memory.peakBytes / memory.allocatedBytes < 0.35 → recommend smaller memory tier. Lambda 3072→256MB, EC2 8GB→2GB, etc.
+   - **Idle-pattern compute** (activeHoursPerDay < 4): suggest serverless or spot/scheduled.
+   - **Lambda cold-start over-allocation**: avg < 30% of allocated memory → drop allocated; cite ~12x cost difference at 256MB vs 3072MB.
+   - **DB FreeStorageBytes > 60% of allocated** for 30+ days → suggest reducing allocated storage.
+   - **Cache evictions=0 AND memory used < 40%** → smaller cache instance.
+
+D. **Memory data missing on a raw VM**: if metrics30d is present but memory is omitted AND the resource is COMPUTE provider=AWS/GCP/AZURE (raw VM, not RDS/Lambda/Cloud-Run/etc.), the customer has not installed the metrics agent (CloudWatch Agent / Ops Agent / Azure Monitor Agent). Surface this as an INVESTIGATION_NEEDED proposal at MEDIUM severity with humanReadableSteps explaining how to install the agent, so future scans can recommend memory-based right-sizing. Set confidenceScore around 60 since the VM may legitimately need its current size.
 
 OUTPUT REQUIREMENTS — each field has a specific job, fill them all when shouldFlag=true:
 
