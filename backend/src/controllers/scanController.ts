@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import { createScan, listScans, runMockScan } from "../services/scanService";
+import { runAgentForScan } from "../services/agentRunService";
 import { asyncHandler } from "../utils/asyncHandler";
 import type { CreateScanPayload, ListScansQuery } from "../utils/scanSchemas";
 
@@ -30,6 +31,15 @@ export const runMockScanController: RequestHandler = asyncHandler(async (req, re
   res.status(200).json({
     requestId: res.locals.requestId ?? null,
     success: true,
+    data: result,
+  });
+});
+
+export const runAgentController: RequestHandler = asyncHandler(async (req, res) => {
+  const result = await runAgentForScan(req.params.id as string);
+
+  res.status(200).json({
+    requestId: res.locals.requestId ?? null,
     data: result,
   });
 });
