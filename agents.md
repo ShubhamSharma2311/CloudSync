@@ -32,8 +32,8 @@ These were explicitly discussed and must hold across the entire codebase:
 | Validation | zod | Env, DTOs, agent JSON — one validator everywhere. |
 | Test runner | Jest | With `ts-jest` for TS, coverage via `--coverage`. |
 | Logger | pino | Structured JSON logs; secret-shaped fields redacted. |
-| LLM provider | Anthropic Claude | Via `ANTHROPIC_API_KEY`. Default model `claude-sonnet-4-6` for per-resource agent calls; `claude-opus-4-7` reserved for high-stakes proposals (destructive remediation, MFA-gated actions). Canonical per this file; overrides any mention of OpenAI or Gemini in earlier drafts. |
-| Agent orchestration | LangGraph (TypeScript) | Sub-agents per resource cluster (Compute / Identity / Storage). LangGraph nodes call Claude via `@anthropic-ai/sdk`. |
+| LLM provider | Google Gemini via Vertex / Generative Language API | Via `VERTEX_API_KEY`. Default model `gemini-2.5-flash` for per-resource agent calls; `gemini-2.5-pro` reserved for high-stakes proposals (destructive remediation, MFA-gated actions). Chosen because the project already lives in GCP (`asia-south1` Cloud SQL) — same vendor, same bill, same IAM. SDK: `@google/genai`. |
+| Agent orchestration | LangGraph (TypeScript) | Sub-agents per resource cluster (Compute / Identity / Storage). LangGraph nodes call Gemini via `@google/genai`. |
 | Embedding provider | Deferred — no embeddings populated in Phase 6 | When/if accuracy gap forces RAG, evaluate Voyage AI (Anthropic-recommended) or OpenAI text-embedding-3-small. Schema column stays nullable. |
 | Database | PostgreSQL + Prisma + pgvector | Schema already scaffolded. |
 | Queue (Phase 5) | pg-boss (tentative) | Chosen to avoid adding Redis; may revisit. |
@@ -126,12 +126,12 @@ These were explicitly discussed and must hold across the entire codebase:
 - Ingest policy corpus, chunk, embed, and store with provider tags.
 - Provider-scoped retrieval endpoint.
 
-### Phase 7: Agent Core (Claude via @anthropic-ai/sdk + LangGraph)
+### Phase 7: Agent Core (Gemini via @google/genai + LangGraph)
 
 - Build Compute/Identity/Storage orchestration as LangGraph sub-agents.
-- Each sub-agent issues a Claude `messages.create` call with strict JSON tool-use schema for the proposal output.
-- Use prompt caching for the static system prompt + rule corpus passages — reduces per-resource cost ~80%.
-- Default model `claude-sonnet-4-6`; escalate to `claude-opus-4-7` only for proposals tagged destructive or MFA-gated.
+- Each sub-agent issues a Gemini `generateContent` call with `responseSchema` enforced JSON output (Gemini's structured-output mode validates server-side).
+- Use Gemini context caching for the static system prompt + rule corpus passages — reduces per-resource cost on repeat scans.
+- Default model `gemini-2.5-flash`; escalate to `gemini-2.5-pro` for proposals tagged destructive or MFA-gated.
 - Confidence scoring (0-100) returned in the structured output.
 - Remediation proposal includes Terraform/CLI snippet + estimated_savings_usd.
 
@@ -173,7 +173,9 @@ These were explicitly discussed and must hold across the entire codebase:
 
 ## 7) Change Log (append-only, most recent first)
 
-- **2026-05-06** — Stack pivot: agent LLM switched from Google Gemini to Anthropic Claude (default `claude-sonnet-4-6` for per-resource calls, `claude-opus-4-7` for destructive-action proposals). `ANTHROPIC_API_KEY` replaces `GEMINI_API_KEY` in env loader. Embedding generation deferred entirely — no vector population in Phase 6; categorical SQL retrieval instead. CIS rule index expanded from ~170 hand-curated rules to 240 extracted from official PDFs (AWS 65 / GCP 83 / Azure 92). Added `utils/logger.ts` (pino with secret redaction) and `utils/errors.ts` (typed AppError hierarchy). Wired pino into Express error handler.
+- **2026-05-06 (later)** — Stack pivot reversed: LLM goes back to Google Gemini, this time via Vertex / Generative Language API with an API-key auth (Claude on Vertex needs OAuth; staying with API key makes deployment simpler). Default `gemini-2.5-flash`, high-stakes `gemini-2.5-pro`. SDK: `@google/genai`. Reasoning: the project is already on GCP (Cloud SQL in `asia-south1`), so single-vendor billing/IAM and regional latency win out over the brief Claude detour.
+- **2026-05-06** — Phase 1 closed (first migration applied to GCP Cloud SQL Postgres 18.3 in `asia-south1`, `cloudsync_dev` DB, pgvector extension installed, seed loaded 247 policies + 13 demo resources). Phase 2 closed (`server.ts`, `index.ts`, graceful shutdown, Express 5 `req.query` getter fix, end-to-end curl verification with structured pino logs). Phase 6 minimal close (full 247-rule corpus seeded into `security_policies`; `GET /api/v1/policies` API live with provider/resourceType/severity/source/search filters via JSON-path SQL). 9 commits pushed to GitHub.
+- **2026-05-06** — (Reverted) Stack pivot: agent LLM switched from Google Gemini to Anthropic Claude. Reverted same day in favor of Vertex/Gemini path (entry above). `ANTHROPIC_API_KEY` env keys removed.
 - **2026-04-22** — Implemented `loadConfig()` in `backend/src/config/env.ts` + `.env.example`. Installed `typescript` as devDependency. Typecheck passes for the new file (pre-existing seed errors deferred to migration step).
 - **2026-04-22** — Adopted flat Express folder layout (see §8). Dropped hexagonal/DDD scaffolding. zod lives next to what it validates: env in `config/`, DTOs in `services/`, agent JSON in `agent/`.
 - **2026-04-22** — Confirmed stack decisions (§2A added). Instituted per-function review gate (§6.6). Flagged `vector(1536)` vs Gemini 768-dim mismatch for migration step. Phase 2 (Clean Architecture Skeleton) kicked off.

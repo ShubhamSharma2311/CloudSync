@@ -15,7 +15,7 @@ const REDACT_PATHS = [
   "credentialsCiphertext",
   "credentialsCiphertextBase64",
   // Specific env keys that end up in error contexts during boot.
-  "*.ANTHROPIC_API_KEY",
+  "*.VERTEX_API_KEY",
   "*.JWT_SECRET",
   "*.CREDENTIAL_ENCRYPTION_KEY",
   // Standard HTTP headers that carry auth material.
