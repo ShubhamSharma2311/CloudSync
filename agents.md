@@ -32,13 +32,14 @@ These were explicitly discussed and must hold across the entire codebase:
 | Validation | zod | Env, DTOs, agent JSON — one validator everywhere. |
 | Test runner | Jest | With `ts-jest` for TS, coverage via `--coverage`. |
 | Logger | pino | Structured JSON logs; secret-shaped fields redacted. |
-| LLM provider | Google Gemini | Via `GEMINI_API_KEY`. Canonical per this file; overrides any mention of OpenAI in the docx guide. |
-| Agent orchestration | LangGraph | Sub-agents per resource cluster (Compute / Identity / Storage). |
+| LLM provider | Anthropic Claude | Via `ANTHROPIC_API_KEY`. Default model `claude-sonnet-4-6` for per-resource agent calls; `claude-opus-4-7` reserved for high-stakes proposals (destructive remediation, MFA-gated actions). Canonical per this file; overrides any mention of OpenAI or Gemini in earlier drafts. |
+| Agent orchestration | LangGraph (TypeScript) | Sub-agents per resource cluster (Compute / Identity / Storage). LangGraph nodes call Claude via `@anthropic-ai/sdk`. |
+| Embedding provider | Deferred — no embeddings populated in Phase 6 | When/if accuracy gap forces RAG, evaluate Voyage AI (Anthropic-recommended) or OpenAI text-embedding-3-small. Schema column stays nullable. |
 | Database | PostgreSQL + Prisma + pgvector | Schema already scaffolded. |
 | Queue (Phase 5) | pg-boss (tentative) | Chosen to avoid adding Redis; may revisit. |
 | Frontend | React + TypeScript + Tailwind | Not yet started. |
 
-**Open schema reconciliation:** `SecurityPolicy.embedding` is `vector(1536)` (OpenAI `text-embedding-3-small` sizing). Gemini `text-embedding-004` is 768-dim. Must be resolved as part of the first migration — either (a) change column to `vector(768)` and use Gemini embeddings, or (b) keep 1536 and use an OpenAI-compatible embedding model for the corpus only. Default plan: **(a)**. Defer final call to the migration step.
+**Embedding column:** `SecurityPolicy.embedding` stays `vector(1536)?` for now and remains NULL. Phase 6 ships a categorical lookup (`provider + resourceType + severity` SQL filter) instead of vector retrieval. Decision to populate / re-dim is deferred until measurable accuracy regression is observed in agent scans (see 2026-05-06 change log entry).
 
 ## 3) Functional and Safety Requirements
 
@@ -125,12 +126,14 @@ These were explicitly discussed and must hold across the entire codebase:
 - Ingest policy corpus, chunk, embed, and store with provider tags.
 - Provider-scoped retrieval endpoint.
 
-### Phase 7: Agent Core (Gemini)
+### Phase 7: Agent Core (Claude via @anthropic-ai/sdk + LangGraph)
 
-- Build Compute/Identity/Storage orchestration.
-- Strict JSON output + schema validation.
-- Confidence scoring.
-- Remediation proposal generation with estimated savings.
+- Build Compute/Identity/Storage orchestration as LangGraph sub-agents.
+- Each sub-agent issues a Claude `messages.create` call with strict JSON tool-use schema for the proposal output.
+- Use prompt caching for the static system prompt + rule corpus passages — reduces per-resource cost ~80%.
+- Default model `claude-sonnet-4-6`; escalate to `claude-opus-4-7` only for proposals tagged destructive or MFA-gated.
+- Confidence scoring (0-100) returned in the structured output.
+- Remediation proposal includes Terraform/CLI snippet + estimated_savings_usd.
 
 ### Phase 8: Human-in-the-Loop + Safety Layers
 
@@ -170,6 +173,7 @@ These were explicitly discussed and must hold across the entire codebase:
 
 ## 7) Change Log (append-only, most recent first)
 
+- **2026-05-06** — Stack pivot: agent LLM switched from Google Gemini to Anthropic Claude (default `claude-sonnet-4-6` for per-resource calls, `claude-opus-4-7` for destructive-action proposals). `ANTHROPIC_API_KEY` replaces `GEMINI_API_KEY` in env loader. Embedding generation deferred entirely — no vector population in Phase 6; categorical SQL retrieval instead. CIS rule index expanded from ~170 hand-curated rules to 240 extracted from official PDFs (AWS 65 / GCP 83 / Azure 92). Added `utils/logger.ts` (pino with secret redaction) and `utils/errors.ts` (typed AppError hierarchy). Wired pino into Express error handler.
 - **2026-04-22** — Implemented `loadConfig()` in `backend/src/config/env.ts` + `.env.example`. Installed `typescript` as devDependency. Typecheck passes for the new file (pre-existing seed errors deferred to migration step).
 - **2026-04-22** — Adopted flat Express folder layout (see §8). Dropped hexagonal/DDD scaffolding. zod lives next to what it validates: env in `config/`, DTOs in `services/`, agent JSON in `agent/`.
 - **2026-04-22** — Confirmed stack decisions (§2A added). Instituted per-function review gate (§6.6). Flagged `vector(1536)` vs Gemini 768-dim mismatch for migration step. Phase 2 (Clean Architecture Skeleton) kicked off.
