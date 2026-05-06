@@ -285,6 +285,14 @@ async function seedResources(): Promise<void> {
       rawMetadata: {
         runtime: "nodejs20.x",
         instanceSpec: { allocatedMemoryMb: 3072 },
+        // Source code linked locally for the code-cost agent. In production
+        // this would be a github_url + commit SHA; for demo we ship the file
+        // alongside the repo.
+        source: {
+          kind: "local",
+          path: "scripts/sample-code/order-processor.ts",
+          language: "typescript",
+        },
         metrics30d: {
           windowDays: 30,
           source: "cloudwatch",
@@ -498,6 +506,11 @@ async function seedResources(): Promise<void> {
         minInstances: 1,
         maxInstances: 100,
         instanceSpec: { vcpus: 1, memoryMb: 512 },
+        source: {
+          kind: "local",
+          path: "scripts/sample-code/payment-api.js",
+          language: "javascript",
+        },
         metrics30d: {
           windowDays: 30,
           source: "cloud-monitoring",
