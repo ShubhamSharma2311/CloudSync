@@ -11,6 +11,8 @@ export const agentProposalSchema = z
     severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
     title: z.string().max(200),
     description: z.string(),
+    whyItMatters: z.string(),
+    humanReadableSteps: z.array(z.string()),
     citedRuleIds: z.array(z.string()),
     remediationCode: z.string(),
     estimatedSavingsUsd: z.number().min(0),
@@ -29,6 +31,12 @@ export const agentProposalSchema = z
     if (!p.description.trim()) {
       ctx.addIssue({ code: "custom", path: ["description"], message: "Required when shouldFlag=true" });
     }
+    if (!p.whyItMatters.trim()) {
+      ctx.addIssue({ code: "custom", path: ["whyItMatters"], message: "Required when shouldFlag=true" });
+    }
+    if (p.humanReadableSteps.length === 0) {
+      ctx.addIssue({ code: "custom", path: ["humanReadableSteps"], message: "At least one step required when shouldFlag=true" });
+    }
   });
 
 export type AgentProposal = z.infer<typeof agentProposalSchema>;
@@ -43,6 +51,8 @@ export const agentProposalGeminiSchema = {
     "severity",
     "title",
     "description",
+    "whyItMatters",
+    "humanReadableSteps",
     "citedRuleIds",
     "remediationCode",
     "estimatedSavingsUsd",
@@ -57,6 +67,8 @@ export const agentProposalGeminiSchema = {
     },
     title: { type: "string" },
     description: { type: "string" },
+    whyItMatters: { type: "string" },
+    humanReadableSteps: { type: "array", items: { type: "string" } },
     citedRuleIds: { type: "array", items: { type: "string" } },
     remediationCode: { type: "string" },
     estimatedSavingsUsd: { type: "number" },

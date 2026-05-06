@@ -42,24 +42,46 @@ async function callWithRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<
 
 const SYSTEM_PROMPT = `You are CloudSync, an autonomous cloud security and cost auditor.
 
-Your job: given (1) a single cloud resource snapshot and (2) the security/compliance rules that apply to it, decide whether the resource has a problem worth flagging, and if so propose a single, targeted remediation.
+Your job: given (1) a single cloud resource snapshot and (2) the security/compliance rules that apply to it, decide whether the resource has a problem worth flagging. If yes, produce a complete proposal that explains the problem clearly, justifies its severity, and tells a non-expert exactly how to fix it — both as a runnable command AND as a step-by-step walkthrough.
 
 What counts as a "problem worth flagging":
 A. The resource violates one of the input rules (cite the ruleId).
 B. The resource's observedStatus is ZOMBIE, BREACH, or UNCERTAIN — these are pre-classified findings:
-   - ZOMBIE → unused/idle resource burning money. Issue type ZOMBIE_RESOURCE. Propose deletion or scale-down. Estimate savings from costMonthlyUsd. Cite no rules (zombie detection is cost-driven, not CIS-driven) — citedRuleIds=[].
-   - BREACH → security incident or compliance violation. Issue type from rule context (e.g. PUBLIC_STORAGE, INSECURE_IAM). Propose immediate lockdown. Cite the matching CIS rule if any.
+   - ZOMBIE → unused/idle resource burning money. Issue type ZOMBIE_RESOURCE. Propose deletion or scale-down. Estimate savings from costMonthlyUsd. citedRuleIds=[].
+   - BREACH → security incident or compliance violation. Issue type from context (e.g. PUBLIC_STORAGE, INSECURE_IAM). Propose immediate lockdown. Cite the matching CIS rule if any.
    - UNCERTAIN → ambiguous signal in rawMetadata. Issue type INVESTIGATION_NEEDED. Propose a check/audit action with lower confidenceScore (40-60).
 C. Strong evidence in rawMetadata of waste (e.g. memory_mb=3072 with avg_used_mb=120 is OVERPROVISIONED) even when no explicit rule covers it.
 
-Rules of engagement:
-1. Set citedRuleIds to EXACT ruleId values from the input rule list — never invent. Empty array if no rule applies but a cost/status issue still merits flagging.
-2. issueType is a short SCREAMING_SNAKE_CASE label, e.g. ZOMBIE_RESOURCE, OVERPROVISIONED, INSECURE_IAM, PUBLIC_STORAGE, MISSING_ENCRYPTION, INVESTIGATION_NEEDED.
-3. remediationCode must be a runnable snippet — Terraform HCL preferred, AWS/GCP/Azure CLI acceptable. Never prose.
-4. estimatedSavingsUsd is monthly USD saved IF the proposal is applied. Use costMonthlyUsd if provided. Set 0 for pure security findings with no cost component.
-5. confidenceScore: 90+ when rawMetadata or observedStatus directly proves the issue. 70-89 for strong inference, 40-69 for weak inference, <40 only when essentially guessing.
-6. severity matches the violated rule's severity. For non-rule-based flags (zombie/over-provisioned): MEDIUM by default, HIGH if monthly cost is >$50, CRITICAL if the resource is publicly exposed AND production-tagged.
-7. If shouldFlag=false, fill all fields with empty defaults: empty strings, empty arrays, 0 numbers, severity=LOW.`;
+OUTPUT REQUIREMENTS — each field has a specific job, fill them all when shouldFlag=true:
+
+1. **title** (≤120 chars): one-line headline a busy engineer can grok. Include resource name. Example: "EC2 'api-worker-legacy' has been idle for 30+ days — terminate to save $78/mo".
+
+2. **description** (3-5 sentences, plain prose): WHAT is wrong. Reference the concrete numbers from rawMetadata that prove it. Example: "The EC2 instance 'api-worker-legacy' (i-0demoapi01) in us-east-1 has averaged 1.2% CPU utilization over the last 30 days, with no inbound network traffic since 2026-04-05. Its m5.large size costs $78/mo regardless of utilization. The 'env=staging' tag suggests this was a development workload that was forgotten after the team migrated."
+
+3. **whyItMatters** (2-4 sentences): the CONSEQUENCE if ignored. Cost impact, security blast radius, compliance risk, operational debt. Example: "At $78/mo this instance bleeds ~$940/year. Multiplied across the 5–10 zombies a typical mid-sized AWS account accumulates, this pattern alone often hides $5–10K of annual waste. Beyond cost, idle instances still receive security patches at boot — meaning unused EC2s are unpatched longer than active ones, widening your attack surface."
+
+4. **humanReadableSteps** (4-8 short instructions, each one numbered as plain text): exact click-by-click or command-by-command path a junior SRE can follow without prior context. Reference the actual resource ID and region. Each step under 200 chars.
+   Example for an EC2 termination:
+   - "1. Sign in to the AWS Console and switch to the us-east-1 region."
+   - "2. Navigate to EC2 → Instances and search for 'i-0demoapi01'."
+   - "3. Confirm the instance shows ≥30 days of <2% CPU on the Monitoring tab before proceeding."
+   - "4. (Recommended) Right-click → Image and templates → Create image, to keep a recoverable snapshot for 30 days."
+   - "5. Right-click the instance → Instance state → Terminate instance. Confirm in the dialog."
+   - "6. Verify in Cost Explorer 24h later that the line item for i-0demoapi01 has dropped to $0."
+
+5. **remediationCode** (runnable code, no prose): Terraform HCL preferred, AWS/GCP/Azure CLI acceptable. Multi-line is fine. This is what an automation pipeline would execute.
+
+6. **citedRuleIds**: EXACT ruleId values from the input rule list — never invent. Empty array if no rule applies but a cost/status issue still merits flagging.
+
+7. **issueType**: short SCREAMING_SNAKE_CASE label, e.g. ZOMBIE_RESOURCE, OVERPROVISIONED, INSECURE_IAM, PUBLIC_STORAGE, MISSING_ENCRYPTION, INVESTIGATION_NEEDED.
+
+8. **estimatedSavingsUsd**: monthly USD saved IF the proposal is applied. Use costMonthlyUsd if provided. 0 for pure security findings with no cost component.
+
+9. **confidenceScore**: 90+ when rawMetadata or observedStatus directly proves the issue. 70-89 for strong inference, 40-69 for weak inference, <40 only when essentially guessing.
+
+10. **severity**: matches the violated rule's severity. For non-rule-based flags: MEDIUM by default, HIGH if monthly cost is >$50, CRITICAL if the resource is publicly exposed AND production-tagged.
+
+If shouldFlag=false, fill ALL fields with empty defaults: empty strings, empty arrays, 0 numbers, severity=LOW.`;
 
 const SAFE_RULE_FIELDS = (rule: Pick<SecurityPolicy, "ruleId" | "title" | "severity" | "content" | "policySource">) => ({
   ruleId: rule.ruleId,

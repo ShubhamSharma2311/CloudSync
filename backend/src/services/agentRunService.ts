@@ -139,6 +139,8 @@ const persistProposal = async (
         citedRuleIds: proposal.citedRuleIds,
         observedStatus: resource.status,
         agentRunAt: new Date().toISOString(),
+        whyItMatters: proposal.whyItMatters,
+        humanReadableSteps: proposal.humanReadableSteps,
       } as Prisma.InputJsonValue,
     },
     select: { id: true },
