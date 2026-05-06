@@ -29,12 +29,29 @@ const parseSegment = (
   return result.data;
 };
 
+// Express 5 made req.query and req.params getter-only. Reassignment throws
+// "Cannot set property X of #<IncomingMessage>". Object.defineProperty is the
+// idiomatic workaround — redefines as a regular writable property so we can
+// store the parsed/coerced result. req.body is still writable as before.
+const assignSegment = (req: Request, segment: "body" | "query" | "params", value: unknown): void => {
+  if (segment === "body") {
+    req.body = value;
+    return;
+  }
+  Object.defineProperty(req, segment, {
+    value,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+};
+
 export const validateRequest = (schema: ValidationSchema): RequestHandler => {
   return (req, _res, next) => {
     try {
-      req.body = parseSegment(schema.body, req.body, "body");
-      req.query = parseSegment(schema.query, req.query, "query") as Request["query"];
-      req.params = parseSegment(schema.params, req.params, "params") as Request["params"];
+      if (schema.body) assignSegment(req, "body", parseSegment(schema.body, req.body, "body"));
+      if (schema.query) assignSegment(req, "query", parseSegment(schema.query, req.query, "query"));
+      if (schema.params) assignSegment(req, "params", parseSegment(schema.params, req.params, "params"));
       next();
     } catch (error) {
       next(error);
