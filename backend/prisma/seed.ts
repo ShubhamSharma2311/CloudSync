@@ -6,12 +6,14 @@ import {
   ConnectionStatus,
   CostCategory,
   PrismaClient,
+  Prisma,
   ProposalStatus,
   ResourceStatus,
   ResourceType,
   ScanTrigger,
   Severity,
 } from "@prisma/client";
+import { CIS_RULES, EXTRA_CHECKS, type CISRule } from "../src/data/cis";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -588,106 +590,96 @@ async function seedCodeProposals(): Promise<void> {
 }
 
 async function seedSecurityPolicies(): Promise<void> {
-  const policies = [
-    {
-      id: "10fb39fc-44e2-4547-9f62-b9d53deea201",
-      provider: CloudProvider.AWS,
-      policySource: "CIS_AWS_FOUNDATIONS",
-      documentVersion: "1.5.0",
-      ruleId: "1.12",
-      chunkIndex: 0,
-      title: "Ensure no root user account access key exists",
-      content: "The root account should not have active access keys.",
-      severity: Severity.CRITICAL,
-    },
-    {
-      id: "10fb39fc-44e2-4547-9f62-b9d53deea202",
-      provider: CloudProvider.AWS,
-      policySource: "CIS_AWS_FOUNDATIONS",
-      documentVersion: "1.5.0",
-      ruleId: "2.1.1",
-      chunkIndex: 0,
-      title: "Ensure S3 buckets are not publicly accessible",
-      content: "Block public access settings should be enabled for all S3 buckets.",
-      severity: Severity.HIGH,
-    },
-    {
-      id: "10fb39fc-44e2-4547-9f62-b9d53deea203",
-      provider: CloudProvider.GCP,
-      policySource: "CIS_GCP_FOUNDATIONS",
-      documentVersion: "2.0.0",
-      ruleId: "2.1",
-      chunkIndex: 0,
-      title: "Ensure cloud storage buckets are not anonymously accessible",
-      content: "IAM bindings must not grant allUsers or allAuthenticatedUsers broad access.",
-      severity: Severity.HIGH,
-    },
-    {
-      id: "10fb39fc-44e2-4547-9f62-b9d53deea204",
-      provider: CloudProvider.GCP,
-      policySource: "CIS_GCP_FOUNDATIONS",
-      documentVersion: "2.0.0",
-      ruleId: "5.1",
-      chunkIndex: 0,
-      title: "Ensure service accounts are not over-privileged",
-      content: "Avoid assigning primitive roles such as Owner and Editor to service accounts.",
-      severity: Severity.HIGH,
-    },
-    {
-      id: "10fb39fc-44e2-4547-9f62-b9d53deea205",
-      provider: CloudProvider.AZURE,
-      policySource: "CIS_AZURE_FOUNDATIONS",
-      documentVersion: "2.0.0",
-      ruleId: "3.1",
-      chunkIndex: 0,
-      title: "Ensure that public network access is disabled for storage accounts",
-      content: "Storage accounts should not allow unrestricted network access.",
-      severity: Severity.HIGH,
-    },
-    {
-      id: "10fb39fc-44e2-4547-9f62-b9d53deea206",
-      provider: CloudProvider.AZURE,
-      policySource: "CIS_AZURE_FOUNDATIONS",
-      documentVersion: "2.0.0",
-      ruleId: "1.5",
-      chunkIndex: 0,
-      title: "Ensure multifactor authentication is enabled for all users",
-      content: "MFA should be required for privileged and non-privileged users.",
-      severity: Severity.CRITICAL,
-    },
-  ] as const;
+  // Load the full CIS rule corpus (240 rules) + project-specific Lambda checks (7)
+  // straight from the generated TS data files. Single source of truth — when the
+  // CIS extraction scripts regenerate these, re-running this seed updates the DB.
 
-  for (const policy of policies) {
-    await prisma.securityPolicy.upsert({
-      where: {
-        provider_policySource_ruleId_chunkIndex: {
-          provider: policy.provider,
-          policySource: policy.policySource,
-          ruleId: policy.ruleId,
-          chunkIndex: policy.chunkIndex,
-        },
-      },
-      update: {
-        documentVersion: policy.documentVersion,
-        title: policy.title,
-        content: policy.content,
-        severity: policy.severity,
-        metadata: { seeded: true },
-      },
-      create: {
-        id: policy.id,
-        provider: policy.provider,
-        policySource: policy.policySource,
-        documentVersion: policy.documentVersion,
-        ruleId: policy.ruleId,
-        title: policy.title,
-        content: policy.content,
-        severity: policy.severity,
-        chunkIndex: policy.chunkIndex,
-        metadata: { seeded: true },
+  const PROVIDER_VERSIONS: Record<string, string> = {
+    AWS: "5.0.0",
+    GCP: "2.0.0",
+    AZURE: "1.0.0",
+  };
+
+  const composeContent = (r: CISRule): string =>
+    [r.description, `Rationale: ${r.rationale}`, `Remediation: ${r.remediation}`]
+      .filter(Boolean)
+      .join("\n\n");
+
+  // Build a flat list. ruleId uses cisSection if present (Azure/GCP) else id (AWS).
+  type PolicyRow = {
+    provider: CloudProvider;
+    policySource: string;
+    documentVersion: string;
+    ruleId: string;
+    chunkIndex: number;
+    title: string;
+    content: string;
+    severity: Severity;
+    metadata: Record<string, unknown>;
+  };
+  const rows: PolicyRow[] = [];
+
+  for (const [providerKey, byResourceType] of Object.entries(CIS_RULES)) {
+    const provider = providerKey as CloudProvider;
+    const documentVersion = PROVIDER_VERSIONS[providerKey] ?? "unknown";
+    for (const [resourceType, rules] of Object.entries(byResourceType)) {
+      for (const rule of rules) {
+        rows.push({
+          provider,
+          policySource: `CIS_${providerKey}_FOUNDATIONS`,
+          documentVersion,
+          ruleId: rule.cisSection ?? rule.id,
+          chunkIndex: 0,
+          title: rule.title,
+          content: composeContent(rule),
+          severity: rule.severity as Severity,
+          metadata: {
+            resourceType,
+            sourceId: rule.id,
+            profile: rule.profile ?? null,
+            remediation: rule.remediation,
+            rationale: rule.rationale,
+          },
+        });
+      }
+    }
+  }
+
+  // Project-specific Lambda checks (NOT CIS — internal CloudSync rules).
+  for (const rule of EXTRA_CHECKS.AWS.LAMBDA) {
+    rows.push({
+      provider: CloudProvider.AWS,
+      policySource: "CLOUDSYNC_LAMBDA_CHECKS",
+      documentVersion: "1.0.0",
+      ruleId: rule.id,
+      chunkIndex: 0,
+      title: rule.title,
+      content: composeContent(rule),
+      severity: rule.severity as Severity,
+      metadata: {
+        resourceType: "SERVERLESS",
+        sourceId: rule.id,
+        profile: null,
+        remediation: rule.remediation,
+        rationale: rule.rationale,
+        category: "project-specific",
       },
     });
   }
+
+  // Wipe existing rows so old hand-curated policies don't linger alongside new
+  // extracted ones with overlapping ruleIds. Audit logs do not reference
+  // security_policies — safe to truncate.
+  await prisma.securityPolicy.deleteMany({});
+  await prisma.securityPolicy.createMany({
+    data: rows.map((r) => ({
+      ...r,
+      metadata: r.metadata as Prisma.InputJsonValue,
+    })),
+  });
+
+  // Sanity report so seed log shows a count we can verify against the source.
+  console.log(`  seedSecurityPolicies: inserted ${rows.length} rows`);
 }
 
 async function seedAuditTrail(): Promise<void> {
