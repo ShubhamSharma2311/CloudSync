@@ -27,7 +27,16 @@ export function getPrisma(): PrismaClient {
   const config = loadConfig();
   const logger = getLogger();
 
-  const adapter = new PrismaPg({ connectionString: config.DATABASE_URL });
+  // node-pg (used by PrismaPg) doesn't natively recognise libpq-style
+  // sslmode=no-verify. Translate it to the equivalent pg ssl option.
+  const url = config.DATABASE_URL;
+  const ssl = /sslmode=(no-verify|require)/.test(url)
+    ? { rejectUnauthorized: false }
+    : /sslmode=disable/.test(url)
+      ? false
+      : undefined;
+
+  const adapter = new PrismaPg({ connectionString: url, ssl });
   const prisma = new PrismaClient({
     adapter,
     log: [
