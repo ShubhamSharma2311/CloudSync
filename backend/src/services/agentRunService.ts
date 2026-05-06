@@ -121,7 +121,7 @@ const persistProposal = async (
 ): Promise<void> => {
   const expiresAt = new Date(Date.now() + PROPOSAL_TTL_HOURS * 60 * 60 * 1000);
 
-  await prisma.proposal.create({
+  const created = await prisma.proposal.create({
     data: {
       cloudAccountId: scan.cloudAccountId,
       scanId: scan.id,
@@ -141,11 +141,15 @@ const persistProposal = async (
         agentRunAt: new Date().toISOString(),
       } as Prisma.InputJsonValue,
     },
+    select: { id: true },
   });
 
-  // Audit log entry — agent action (not yet user-approved).
+  // Audit log: PROPOSAL_GENERATED is the genesis entry on this proposal's
+  // chain. Subsequent entries (APPROVED, EXECUTED, etc.) link via
+  // previousEntryHash so the full lineage is verifiable.
   await prisma.auditLog.create({
     data: {
+      proposalId: created.id,
       resourceId: resource.id,
       scanId: scan.id,
       actorType: "AGENT",
@@ -157,8 +161,8 @@ const persistProposal = async (
         severity: proposal.severity,
         confidenceScore: proposal.confidenceScore,
       } as Prisma.InputJsonValue,
-      preState: { proposalCount: 0 } as Prisma.InputJsonValue,
-      postState: { proposalCount: 1 } as Prisma.InputJsonValue,
+      preState: { proposalExists: false } as Prisma.InputJsonValue,
+      postState: { proposalStatus: "PENDING" } as Prisma.InputJsonValue,
       previousEntryHash: null,
       entryHash: randomUUID(),
     },
