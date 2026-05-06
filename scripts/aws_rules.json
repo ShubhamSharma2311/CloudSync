@@ -1,0 +1,652 @@
+[
+  {
+    "id": "Account.1",
+    "title": "Security contact information should be provided for an AWS account",
+    "description": "This control checks if an Amazon Web Services (AWS) account has security contact information. The control fails if security contact information is not provided for the account.",
+    "rationale": "This control checks if an Amazon Web Services (AWS) account has security contact information. The control fails if security contact information is not provided for the account.",
+    "remediation": "To add an alternate contact as a security contact to your AWS account, see Update the alternate contacts for your AWS account in the AWS Account Management Reference Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "CloudTrail.1",
+    "title": "CloudTrail should be enabled and configured with at least one multi-Region trail",
+    "description": "This control checks whether there is at least one multi-Region AWS CloudTrail trail that captures read and write management events. The control fails if CloudTrail is disabled or if there isn't at least one CloudTrail trail that captures read and write management events.",
+    "rationale": "This control checks whether there is at least one multi-Region AWS CloudTrail trail that captures read and write management events. The control fails if CloudTrail is disabled or if there isn't at least one CloudTrail trail that captures read and write management events.",
+    "remediation": "To create a new multi-Region trail in CloudTrail, see Creating a trail in the AWS CloudTrail User Guide. Use the following values: Field Value Additional settings, Log file validation Enabled Choose log events, Management events, API Read and Write. Clear check boxes for activity exclusions. To update an existing trail, see Updating a trail in the AWS CloudTrail User Guide. In Management events, for API activity, choose Read and Write.",
+    "severity": "HIGH",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "CloudTrail.2",
+    "title": "CloudTrail should have encryption at-rest enabled",
+    "description": "This control checks whether CloudTrail is configured to use the server-side encryption (SSE) AWS KMS key encryption. The control fails if the KmsKeyId isn't defined.",
+    "rationale": "This control checks whether CloudTrail is configured to use the server-side encryption (SSE) AWS KMS key encryption. The control fails if the KmsKeyId isn't defined.",
+    "remediation": "To enable SSE-KMS encryption for CloudTrail log files, see Update a trail to use a KMS key in the AWS CloudTrail User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::CloudTrail::Trail"
+  },
+  {
+    "id": "CloudTrail.4",
+    "title": "CloudTrail log file validation should be enabled",
+    "description": "This control checks whether log file integrity validation is enabled on a CloudTrail trail.",
+    "rationale": "This control checks whether log file integrity validation is enabled on a CloudTrail trail.",
+    "remediation": "To enable CloudTrail log file validation, see Enabling log file integrity validation for CloudTrail in the AWS CloudTrail User Guide.",
+    "severity": "LOW",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::CloudTrail::Trail"
+  },
+  {
+    "id": "CloudTrail.5",
+    "title": "CloudTrail trails should be integrated with Amazon CloudWatch Logs",
+    "description": "This control checks whether CloudTrail trails are configured to send logs to CloudWatch Logs. The control fails if the CloudWatchLogsLogGroupArn property of the trail is empty.",
+    "rationale": "This control checks whether CloudTrail trails are configured to send logs to CloudWatch Logs. The control fails if the CloudWatchLogsLogGroupArn property of the trail is empty.",
+    "remediation": "To integrate CloudTrail with CloudWatch Logs, see Sending events to CloudWatch Logs in the AWS CloudTrail User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::CloudTrail::Trail"
+  },
+  {
+    "id": "CloudTrail.6",
+    "title": "Ensure the S3 bucket used to store CloudTrail logs is not publicly accessible",
+    "description": "Ensure the S3 bucket used to store CloudTrail logs is not publicly accessible",
+    "rationale": "Ensure the S3 bucket used to store CloudTrail logs is not publicly accessible",
+    "remediation": "To block public access to your CloudTrail S3 bucket, see Configuring block public access settings for your S3 buckets in the Amazon Simple Storage Service User Guide. Select all four Amazon S3 Block Public Access Settings.",
+    "severity": "CRITICAL",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::S3::Bucket"
+  },
+  {
+    "id": "CloudTrail.7",
+    "title": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
+    "description": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
+    "rationale": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
+    "remediation": "To enable server access logging for your CloudTrail S3 bucket, see Enabling Amazon S3 server access logging in the Amazon Simple Storage Service User Guide.",
+    "severity": "LOW",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::S3::Bucket"
+  },
+  {
+    "id": "CloudWatch.1",
+    "title": "A log metric filter and alarm should exist for usage of the \"root\" user",
+    "description": "A log metric filter and alarm should exist for usage of the \"root\" user",
+    "rationale": "A log metric filter and alarm should exist for usage of the \"root\" user",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.2",
+    "title": "Ensure a log metric filter and alarm exist for unauthorized API calls",
+    "description": "Ensure a log metric filter and alarm exist for unauthorized API calls",
+    "rationale": "Ensure a log metric filter and alarm exist for unauthorized API calls",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. Controls reference 740 AWS Security Hub User Guide 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.3",
+    "title": "Ensure a log metric filter and alarm exist for Management Console sign-in",
+    "description": "Ensure a log metric filter and alarm exist for Management Console sign-in without",
+    "rationale": "Ensure a log metric filter and alarm exist for Management Console sign-in without",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.4",
+    "title": "Ensure a log metric filter and alarm exist for IAM policy changes",
+    "description": "This control checks whether you monitor API calls in real time by directing CloudTrail logs to CloudWatch Logs and establishing corresponding metric filters and alarms.",
+    "rationale": "This control checks whether you monitor API calls in real time by directing CloudTrail logs to CloudWatch Logs and establishing corresponding metric filters and alarms.",
+    "remediation": "Note Our recommended filter pattern in these remediation steps differs from the filter pattern in the CIS guidance. Our recommended filters target only events coming from IAM API calls. To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.5",
+    "title": "Ensure a log metric filter and alarm exist for CloudTrail configuration changes",
+    "description": "Ensure a log metric filter and alarm exist for CloudTrail configuration changes",
+    "rationale": "Ensure a log metric filter and alarm exist for CloudTrail configuration changes",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.6",
+    "title": "Ensure a log metric filter and alarm exist for AWS Management Console",
+    "description": "Ensure a log metric filter and alarm exist for AWS Management Console",
+    "rationale": "Ensure a log metric filter and alarm exist for AWS Management Console",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.7",
+    "title": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of",
+    "description": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of",
+    "rationale": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Controls reference 754 AWS Security Hub User Guide Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.8",
+    "title": "Ensure a log metric filter and alarm exist for S3 bucket policy changes",
+    "description": "Ensure a log metric filter and alarm exist for S3 bucket policy changes",
+    "rationale": "Ensure a log metric filter and alarm exist for S3 bucket policy changes",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.9",
+    "title": "Ensure a log metric filter and alarm exist for AWS Config configuration changes",
+    "description": "Ensure a log metric filter and alarm exist for AWS Config configuration changes",
+    "rationale": "Ensure a log metric filter and alarm exist for AWS Config configuration changes",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.10",
+    "title": "Ensure a log metric filter and alarm exist for security group changes",
+    "description": "Ensure a log metric filter and alarm exist for security group changes",
+    "rationale": "Ensure a log metric filter and alarm exist for security group changes",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.11",
+    "title": "Ensure a log metric filter and alarm exist for changes to Network Access",
+    "description": "Ensure a log metric filter and alarm exist for changes to Network Access Control",
+    "rationale": "Ensure a log metric filter and alarm exist for changes to Network Access Control",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.12",
+    "title": "Ensure a log metric filter and alarm exist for changes to network gateways",
+    "description": "Ensure a log metric filter and alarm exist for changes to network gateways",
+    "rationale": "Ensure a log metric filter and alarm exist for changes to network gateways",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.13",
+    "title": "Ensure a log metric filter and alarm exist for route table changes",
+    "description": "This control checks whether you monitor API calls in real time by directing CloudTrail logs to CloudWatch Logs and establishing corresponding metric filters and alarms. Routing tables route network traffic between subnets and to network gateways.",
+    "rationale": "This control checks whether you monitor API calls in real time by directing CloudTrail logs to CloudWatch Logs and establishing corresponding metric filters and alarms. Routing tables route network traffic between subnets and to network gateways.",
+    "remediation": "Note Our recommended filter pattern in these remediation steps differs from the filter pattern in the CIS guidance. Our recommended filters target only events coming from Amazon Elastic Compute Cloud (EC2) API calls. Controls reference 771 AWS Security Hub User Guide To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "CloudWatch.14",
+    "title": "Ensure a log metric filter and alarm exist for VPC changes",
+    "description": "Ensure a log metric filter and alarm exist for VPC changes",
+    "rationale": "Ensure a log metric filter and alarm exist for VPC changes",
+    "remediation": "To pass this control, follow these steps to create an Amazon SNS topic, an AWS CloudTrail trail, a metric filter, and an alarm for the metric filter. Controls reference 774 AWS Security Hub User Guide 1. Create an Amazon SNS topic. For instructions, see Getting started with Amazon SNS in the Amazon Simple Notification Service Developer Guide. Create a topic that receives all CIS alarms, and create at least one subscription to the topic. 2. Create a CloudTrail trail that applies to all AWS Regions. For instructions, see Creating a trail in the AWS CloudTrail User Guide. Make note of the name of the CloudWatch Logs log group that you associate with the CloudTrail trail. You create the metric filter for that log group in the next step. 3. Create a metric filter.",
+    "severity": "LOW",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::Logs::MetricFilter, AWS::CloudWatch::Alarm,"
+  },
+  {
+    "id": "Config.1",
+    "title": "AWS Config should be enabled and use the service-linked role for resource recording",
+    "description": "This control checks whether AWS Config is enabled in your account in the current AWS Region, records all resources that correspond to controls that are enabled in the current Region, and uses the service-linked AWS Config role. The name of the service-linked role is AWSServiceRoleForConfig. If you don't use the service-linked role and don't set the includeConfigServiceLinkedRoleCheck parameter to false, the control fails because other roles might not have the necessary permissions for AWS Config to accurately record your resources.",
+    "rationale": "This control checks whether AWS Config is enabled in your account in the current AWS Region, records all resources that correspond to controls that are enabled in the current Region, and uses the service-linked AWS Config role. The name of the service-linked role is AWSServiceRoleForConfig. If you don't use the service-linked role and don't set the includeConfigServiceLinkedRoleCheck parameter to false, the control fails because other roles might not have the necessary permissions for AWS Config to accurately record your resources.",
+    "remediation": "In the home Region and Regions that aren't part of an aggregator, record all resources that are required for controls that are enabled in the current Region, including IAM global resources if you have enabled controls that require IAM global resources. Controls reference 798 AWS Security Hub User Guide In linked Regions, you can use any AWS Config recording mode, as long as you are recording all resources that correspond to controls that are enabled in the current Region. In linked Regions, if you have enabled controls that require recording of IAM global resources, you won't receive a FAILED finding (your recording of other resources is sufficient). The StatusReasons field in the Compliance object of your finding can help you determine why you have a failed finding for this control.",
+    "severity": "CRITICAL",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::::Account                                         Hub CSPM"
+  },
+  {
+    "id": "EC2.2",
+    "title": "VPC default security groups should not allow inbound or outbound traffic",
+    "description": "This control checks whether the default security group of a VPC allows inbound or outbound traffic. The control fails if the security group allows inbound or outbound traffic.",
+    "rationale": "This control checks whether the default security group of a VPC allows inbound or outbound traffic. The control fails if the security group allows inbound or outbound traffic.",
+    "remediation": "To remediate this issue, start by creating new least-privilege security groups. For instructions, see Create a security group in the Amazon VPC User Guide. Then, assign the new security groups to your EC2 instances. For instructions, see Change an instance's security group in the Amazon EC2 User Guide. After you assign the new security groups to your resources, remove all inbound and outbound rules from the default security groups. For instructions, see Configure security group rules in the Amazon VPC User Guide.",
+    "severity": "HIGH",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::SecurityGroup"
+  },
+  {
+    "id": "EC2.6",
+    "title": "VPC flow logging should be enabled in all VPCs",
+    "description": "This control checks whether Amazon VPC Flow Logs are found and enabled for VPCs. The traffic type is set to Reject. The control fails if VPC Flow Logs aren't enabled for VPCs in your account.",
+    "rationale": "This control checks whether Amazon VPC Flow Logs are found and enabled for VPCs. The traffic type is set to Reject. The control fails if VPC Flow Logs aren't enabled for VPCs in your account.",
+    "remediation": "To create a VPC Flow Log, see Create a Flow Log in the Amazon VPC User Guide. After you open the Amazon VPC console, choose Your VPCs. For Filter, choose Reject or All.",
+    "severity": "MEDIUM",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::VPC"
+  },
+  {
+    "id": "EC2.7",
+    "title": "EBS default encryption should be enabled",
+    "description": "This control checks whether account-level encryption is enabled by default for Amazon Elastic Block Store (Amazon EBS) volumes. The control fails if the account level encryption isn't enabled for EBS volumes.",
+    "rationale": "This control checks whether account-level encryption is enabled by default for Amazon Elastic Block Store (Amazon EBS) volumes. The control fails if the account level encryption isn't enabled for EBS volumes.",
+    "remediation": "To configure default encryption for Amazon EBS volumes, see Encryption by default in the Amazon EC2 User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "EC2.8",
+    "title": "EC2 instances should use Instance Metadata Service Version 2 (IMDSv2)",
+    "description": "This control checks whether your EC2 instance metadata version is configured with Instance Metadata Service Version 2 (IMDSv2). The control passes if HttpTokens is set to required for IMDSv2. The control fails if HttpTokens is set to optional.",
+    "rationale": "This control checks whether your EC2 instance metadata version is configured with Instance Metadata Service Version 2 (IMDSv2). The control passes if HttpTokens is set to required for IMDSv2. The control fails if HttpTokens is set to optional.",
+    "remediation": "To configure EC2 instances with IMDSv2, see Recommended path to requiring IMDSv2 in the Amazon EC2 User Guide.",
+    "severity": "HIGH",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::Instance"
+  },
+  {
+    "id": "EC2.13",
+    "title": "Security groups should not allow ingress from 0.0.0.0/0 or ::/0 to port 22",
+    "description": "This control checks whether an Amazon EC2 security group allows ingress from 0.0.0.0/0 or ::/0 to port 22. The control fails if the security group allows ingress from 0.0.0.0/0 or ::/0 to port 22.",
+    "rationale": "This control checks whether an Amazon EC2 security group allows ingress from 0.0.0.0/0 or ::/0 to port 22. The control fails if the security group allows ingress from 0.0.0.0/0 or ::/0 to port 22.",
+    "remediation": "To prohibit ingress to port 22, remove the rule that allows such access for each security group associated with a VPC. For instructions, see Update security group rules in the Amazon EC2 User Guide. After selecting a security group in the Amazon EC2 console, choose Actions, Edit inbound rules. Remove the rule that allows access to port 22.",
+    "severity": "HIGH",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::SecurityGroup"
+  },
+  {
+    "id": "EC2.14",
+    "title": "Security groups should not allow ingress from 0.0.0.0/0 or ::/0 to port 3389",
+    "description": "This control checks whether an Amazon EC2 security group allows ingress from 0.0.0.0/0 or ::/0 to port 3389. The control fails if the security group allows ingress from 0.0.0.0/0 or ::/0 to port 3389.",
+    "rationale": "This control checks whether an Amazon EC2 security group allows ingress from 0.0.0.0/0 or ::/0 to port 3389. The control fails if the security group allows ingress from 0.0.0.0/0 or ::/0 to port 3389.",
+    "remediation": "To prohibit ingress to port 3389, remove the rule that allows such access for each security group associated with a VPC. For instructions, see Update security group rules in the Amazon VPC User Controls reference 843 AWS Security Hub User Guide Guide. After selecting a security group in the Amazon VPC Console, choose Actions, Edit inbound rules. Remove the rule that allows access to port 3389.",
+    "severity": "HIGH",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::SecurityGroup"
+  },
+  {
+    "id": "EC2.21",
+    "title": "Network ACLs should not allow ingress from 0.0.0.0/0 to port 22 or port 3389",
+    "description": "This control checks whether a network access control list (network ACL) allows unrestricted access to the default TCP ports for SSH/RDP ingress traffic. The control fails if the network ACL inbound entry allows a source CIDR block of '0.0.0.0/0' or '::/0' for TCP ports 22 or 3389. The control doesn't generate findings for a default network ACL.",
+    "rationale": "This control checks whether a network access control list (network ACL) allows unrestricted access to the default TCP ports for SSH/RDP ingress traffic. The control fails if the network ACL inbound entry allows a source CIDR block of '0.0.0.0/0' or '::/0' for TCP ports 22 or 3389. The control doesn't generate findings for a default network ACL.",
+    "remediation": "To edit network ACL traffic rules, see Work with network ACLs in the Amazon VPC User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::NetworkAcl"
+  },
+  {
+    "id": "EC2.53",
+    "title": "EC2 security groups should not allow ingress from 0.0.0.0/0 to remote server",
+    "description": "This control checks whether an Amazon EC2 security group allows ingress from 0.0.0.0/0 to remote server administration ports (ports 22 and 3389). The control fails if the security group allows ingress from 0.0.0.0/0 to port 22 or 3389.",
+    "rationale": "This control checks whether an Amazon EC2 security group allows ingress from 0.0.0.0/0 to remote server administration ports (ports 22 and 3389). The control fails if the security group allows ingress from 0.0.0.0/0 to port 22 or 3389.",
+    "remediation": "To update an EC2 security group rule to prohibit ingress traffic to the specified ports, see Update security group rules in the Amazon EC2 User Guide. After selecting a security group in the Amazon EC2 console, choose Actions, Edit inbound rules. Remove the rule that allows access to port 22 or port 3389.",
+    "severity": "HIGH",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::SecurityGroup"
+  },
+  {
+    "id": "EC2.54",
+    "title": "EC2 security groups should not allow ingress from ::/0 to remote server administration",
+    "description": "This control checks whether an Amazon EC2 security group allows ingress from ::/0 to remote server administration ports (ports 22 and 3389). The control fails if the security group allows ingress from ::/0 to port 22 or 3389.",
+    "rationale": "This control checks whether an Amazon EC2 security group allows ingress from ::/0 to remote server administration ports (ports 22 and 3389). The control fails if the security group allows ingress from ::/0 to port 22 or 3389.",
+    "remediation": "To update an EC2 security group rule to prohibit ingress traffic to the specified ports, see Update security group rules in the Amazon EC2 User Guide. After selecting a security group in the Amazon EC2 console, choose Actions, Edit inbound rules. Remove the rule that allows access to port 22 or port 3389.",
+    "severity": "HIGH",
+    "resourceType": "COMPUTE",
+    "awsResourceType": "AWS::EC2::SecurityGroup"
+  },
+  {
+    "id": "EFS.1",
+    "title": "Elastic File System should be configured to encrypt file data at-rest using AWS KMS",
+    "description": "This control checks whether Amazon Elastic File System is configured to encrypt the file data using AWS KMS. The check fails in the following cases.",
+    "rationale": "This control checks whether Amazon Elastic File System is configured to encrypt the file data using AWS KMS. The check fails in the following cases.",
+    "remediation": "For details on how to encrypt a new Amazon EFS file system, see Encrypting data at rest in the Amazon Elastic File System User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::EFS::FileSystem"
+  },
+  {
+    "id": "EFS.8",
+    "title": "EFS file systems should be encrypted at rest",
+    "description": "This control checks whether an Amazon EFS file system encrypts data with AWS Key Management Service (AWS KMS). The control fails if a file system isn't encrypted.",
+    "rationale": "This control checks whether an Amazon EFS file system encrypts data with AWS Key Management Service (AWS KMS). The control fails if a file system isn't encrypted.",
+    "remediation": "To enable encryption at rest for a new EFS file system, see Encrypting data at rest in the Amazon Elastic File System User Guide. Security Hub CSPM controls for Amazon EKS These Security Hub CSPM controls evaluate the Amazon Elastic Kubernetes Service (Amazon EKS) service and resources. The controls might not be available in all AWS Regions. For more information, see Availability of controls by Region. Controls reference 946 AWS Security Hub User Guide",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::EFS::FileSystem"
+  },
+  {
+    "id": "IAM.1",
+    "title": "IAM policies should not allow full \"*\" administrative privileges",
+    "description": "This control checks whether the default version of IAM policies (also known as customer managed policies) has administrator access by including a statement with \"Effect\": \"Allow\" with \"Action\": \"*\" over \"Resource\": \"*\". The control fails if you have IAM policies with such a statement.",
+    "rationale": "This control checks whether the default version of IAM policies (also known as customer managed policies) has administrator access by including a statement with \"Effect\": \"Allow\" with \"Action\": \"*\" over \"Resource\": \"*\". The control fails if you have IAM policies with such a statement.",
+    "remediation": "To modify your IAM policies so that they do not allow full \"*\" administrative privileges, see Editing IAM policies in the IAM User Guide.",
+    "severity": "HIGH",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::Policy"
+  },
+  {
+    "id": "IAM.2",
+    "title": "IAM users should not have IAM policies attached",
+    "description": "This control checks whether your IAM users have policies attached. The control fails if your IAM users have policies attached. Instead, IAM users must inherit permissions from IAM groups or assume a role.",
+    "rationale": "This control checks whether your IAM users have policies attached. The control fails if your IAM users have policies attached. Instead, IAM users must inherit permissions from IAM groups or assume a role.",
+    "remediation": "To resolve this issue, create an IAM group, and attach the policy to the group. Then, add the users to the group. The policy is applied to each user in the group. To remove a policy attached directly to a user, see Adding and removing IAM identity permissions in the IAM User Guide.",
+    "severity": "LOW",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::User"
+  },
+  {
+    "id": "IAM.3",
+    "title": "IAM users' access keys should be rotated every 90 days or less",
+    "description": "This control checks whether the active access keys are rotated within 90 days.",
+    "rationale": "This control checks whether the active access keys are rotated within 90 days.",
+    "remediation": "To rotate access keys that are older than 90 days, see Rotating access keys in the IAM User Guide. Follow the instructions for any user with an Access key age greater than 90 days.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::User"
+  },
+  {
+    "id": "IAM.4",
+    "title": "IAM root user access key should not exist",
+    "description": "This control checks whether the root user access key is present.",
+    "rationale": "This control checks whether the root user access key is present.",
+    "remediation": "To delete the root user access key, see Deleting access keys for the root user in the IAM User Guide. To delete the root user access keys from an AWS account in AWS GovCloud (US), see Deleting my AWS GovCloud (US) account root user access keys in the AWS GovCloud (US) User Guide.",
+    "severity": "CRITICAL",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.5",
+    "title": "MFA should be enabled for all IAM users that have a console password",
+    "description": "This control checks whether AWS multi-factor authentication (MFA) is enabled for all IAM users that use a console password.",
+    "rationale": "This control checks whether AWS multi-factor authentication (MFA) is enabled for all IAM users that use a console password.",
+    "remediation": "To add MFA for IAM users, see Using multi-factor authentication (MFA) in AWS in the IAM User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::User"
+  },
+  {
+    "id": "IAM.6",
+    "title": "Hardware MFA should be enabled for the root user",
+    "description": "This control checks whether your AWS account is enabled to use a hardware multi-factor authentication (MFA) device to sign in with root user credentials. The control fails if hardware MFA isn't enabled or virtual MFA devices are permitted for signing in with root user credentials.",
+    "rationale": "This control checks whether your AWS account is enabled to use a hardware multi-factor authentication (MFA) device to sign in with root user credentials. The control fails if hardware MFA isn't enabled or virtual MFA devices are permitted for signing in with root user credentials.",
+    "remediation": "For information about enabling hardware MFA for the root user, see Multi-factor authentication for an AWS account root user in the IAM User Guide.",
+    "severity": "CRITICAL",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.8",
+    "title": "Unused IAM user credentials should be removed",
+    "description": "This control checks whether your IAM users have passwords or active access keys that have not been used for 90 days.",
+    "rationale": "This control checks whether your IAM users have passwords or active access keys that have not been used for 90 days.",
+    "remediation": "When you view user information in the IAM console, there are columns for Access key age, Password age, and Last activity. If the value in any of these columns is greater than 90 days, make the credentials for those users inactive. You can also use credential reports to monitor users and identify those with no activity for 90 or more days. You can download credential reports in .csv format from the IAM console. After you identify the inactive accounts or unused credentials, deactivate them. For instructions, see Creating, changing, or deleting an IAM user password (console) in the IAM User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::User"
+  },
+  {
+    "id": "IAM.9",
+    "title": "MFA should be enabled for the root user",
+    "description": "This control checks whether multi-factor authentication (MFA) is enabled for the IAM root user of an AWS account to sign in to the AWS Management Console. The control fails if MFA isn't enabled for the root user of the account.",
+    "rationale": "This control checks whether multi-factor authentication (MFA) is enabled for the IAM root user of an AWS account to sign in to the AWS Management Console. The control fails if MFA isn't enabled for the root user of the account.",
+    "remediation": "For information about enabling MFA for the root user of an AWS account, see Multi-factor authentication for the AWS account root user in the AWS Identity and Access Management User Guide.",
+    "severity": "CRITICAL",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.11",
+    "title": "Ensure IAM password policy requires at least one uppercase letter",
+    "description": "Ensure IAM password policy requires at least one uppercase letter",
+    "rationale": "Ensure IAM password policy requires at least one uppercase letter",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Password strength, select Require at least one uppercase letter from the Latin alphabet (AZ).",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.12",
+    "title": "Ensure IAM password policy requires at least one lowercase letter",
+    "description": "Ensure IAM password policy requires at least one lowercase letter",
+    "rationale": "Ensure IAM password policy requires at least one lowercase letter",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Password strength, select Require at least one lowercase letter from the Latin alphabet (AZ).",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.13",
+    "title": "Ensure IAM password policy requires at least one symbol",
+    "description": "Ensure IAM password policy requires at least one symbol",
+    "rationale": "Ensure IAM password policy requires at least one symbol",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Password strength, select Require at least one nonalphanumeric character. Controls reference 1039 AWS Security Hub User Guide",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.14",
+    "title": "Ensure IAM password policy requires at least one number",
+    "description": "Ensure IAM password policy requires at least one number",
+    "rationale": "Ensure IAM password policy requires at least one number",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Password strength, select Require at least one number.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.15",
+    "title": "Ensure IAM password policy requires minimum password length of 14 or greater",
+    "description": "Ensure IAM password policy requires minimum password length of 14 or greater",
+    "rationale": "Ensure IAM password policy requires minimum password length of 14 or greater",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Password minimum length, enter 14 or a larger number.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.16",
+    "title": "Ensure IAM password policy prevents password reuse",
+    "description": "This control checks whether the number of passwords to remember is set to 24. The control fails if the value is not 24.",
+    "rationale": "This control checks whether the number of passwords to remember is set to 24. The control fails if the value is not 24.",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Prevent password reuse, enter 24. Controls reference 1041 AWS Security Hub User Guide",
+    "severity": "LOW",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.17",
+    "title": "Ensure IAM password policy expires passwords within 90 days or less",
+    "description": "Ensure IAM password policy expires passwords within 90 days or less",
+    "rationale": "Ensure IAM password policy expires passwords within 90 days or less",
+    "remediation": "To change your password policy, see Setting an account password policy for IAM users in the IAM User Guide. For Turn on password expiration, enter 90 or a smaller number.",
+    "severity": "LOW",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.18",
+    "title": "Ensure a support role has been created to manage incidents with AWS Support",
+    "description": "Ensure a support role has been created to manage incidents with AWS Support",
+    "rationale": "Ensure a support role has been created to manage incidents with AWS Support",
+    "remediation": "To remediate this issue, create a role to allow authorized users to manage Support incidents. To create the role to use for Support access 1. Open the IAM console at https://console.aws.amazon.com/iam/. 2. In the IAM navigation pane, choose Roles, then choose Create role. 3. For Role type, choose the Another AWS account. Controls reference 1043 AWS Security Hub User Guide 4. For Account ID, enter the AWS account ID of the AWS account to which you want to grant access to your resources. If the users or groups that will assume this role are in the same account, then enter the local account number. Note The administrator of the specified account can grant permission to assume this role to any user in that account.",
+    "severity": "LOW",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "IAM.22",
+    "title": "IAM user credentials unused for 45 days should be removed",
+    "description": "This control checks whether your IAM users have passwords or active access keys that have not been used for 45 days or more. To do so, it checks whether the maxCredentialUsageAge parameter of the AWS Config rule is equal to 45 or more.",
+    "rationale": "This control checks whether your IAM users have passwords or active access keys that have not been used for 45 days or more. To do so, it checks whether the maxCredentialUsageAge parameter of the AWS Config rule is equal to 45 or more.",
+    "remediation": "When you view user information in the IAM console, there are columns for Access key age, Password age, and Last activity. If the value in any of these columns is greater than 45 days, make the credentials for those users inactive. You can also use credential reports to monitor users and identify those with no activity for 45 or more days. You can download credential reports in .csv format from the IAM console. After you identify the inactive accounts or unused credentials, deactivate them. For instructions, see Creating, changing, or deleting an IAM user password (console) in the IAM User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::User"
+  },
+  {
+    "id": "IAM.26",
+    "title": "Expired SSL/TLS certificates managed in IAM should be removed",
+    "description": "This controls checks whether an active SSL/TLS server certificate that is managed in IAM has expired. The control fails if the expired SSL/TLS server certificate isn't removed.",
+    "rationale": "This controls checks whether an active SSL/TLS server certificate that is managed in IAM has expired. The control fails if the expired SSL/TLS server certificate isn't removed.",
+    "remediation": "To remove a server certificate from IAM, see Managing server certificates in IAM in the IAM User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::ServerCertificate"
+  },
+  {
+    "id": "IAM.27",
+    "title": "IAM identities should not have the AWSCloudShellFullAccess policy attached",
+    "description": "This control checks whether an IAM identity (user, role, or group) has the AWS managed policy AWSCloudShellFullAccess attached. The control fails if an IAM identity has the AWSCloudShellFullAccess policy attached.",
+    "rationale": "This control checks whether an IAM identity (user, role, or group) has the AWS managed policy AWSCloudShellFullAccess attached. The control fails if an IAM identity has the AWSCloudShellFullAccess policy attached.",
+    "remediation": "To detach the AWSCloudShellFullAccess policy from an IAM identity, see Adding and removing IAM identity permissions in the IAM User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::IAM::Role, AWS::IAM::User, AWS::IAM::Group"
+  },
+  {
+    "id": "IAM.28",
+    "title": "IAM Access Analyzer external access analyzer should be enabled",
+    "description": "This control checks whether an AWS account has an IAM Access Analyzer external access analyzer enabled. The control fails if the account doesn't have an external access analyzer enabled in your currently selected AWS Region.",
+    "rationale": "This control checks whether an AWS account has an IAM Access Analyzer external access analyzer enabled. The control fails if the account doesn't have an external access analyzer enabled in your currently selected AWS Region.",
+    "remediation": "For information about enabling an external access analyzer in a specific Region, see Getting started with IAM Access Analyzer in the IAM User Guide. You must enable an analyzer in each Region in which you want to monitor access to your resources. Security Hub CSPM controls for Amazon Inspector These AWS Security Hub CSPM controls evaluate the Amazon Inspector service and resources. These controls may not be available in all AWS Regions. For more information, see Availability of controls by Region.",
+    "severity": "HIGH",
+    "resourceType": "IDENTITY",
+    "awsResourceType": "AWS::AccessAnalyzer::Analyzer"
+  },
+  {
+    "id": "KMS.4",
+    "title": "AWS KMS key rotation should be enabled",
+    "description": "AWS KMS key rotation should be enabled",
+    "rationale": "AWS KMS key rotation should be enabled",
+    "remediation": "To enable KMS key rotation, see How to enable and disable automatic key rotation in the AWS Key Management Service Developer Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::KMS::Key"
+  },
+  {
+    "id": "RDS.2",
+    "title": "RDS DB Instances should prohibit public access, as determined by the",
+    "description": "This control checks whether Amazon RDS instances are publicly accessible by evaluating the PubliclyAccessible field in the instance configuration item.",
+    "rationale": "This control checks whether Amazon RDS instances are publicly accessible by evaluating the PubliclyAccessible field in the instance configuration item.",
+    "remediation": "To remove public access from RDS DB instances, see Modifying an Amazon RDS DB instance in the Amazon RDS User Guide. For Public access, choose No.",
+    "severity": "CRITICAL",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::RDS::DBInstance"
+  },
+  {
+    "id": "RDS.3",
+    "title": "RDS DB instances should have encryption at-rest enabled",
+    "description": "This control checks whether storage encryption is enabled for your Amazon RDS DB instances.",
+    "rationale": "This control checks whether storage encryption is enabled for your Amazon RDS DB instances.",
+    "remediation": "For information about encrypting DB instances in Amazon RDS, see Encrypting Amazon RDS resources in the Amazon RDS User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::RDS::DBInstance"
+  },
+  {
+    "id": "RDS.5",
+    "title": "RDS DB instances should be configured with multiple Availability Zones",
+    "description": "This control checks whether high availability is enabled for your RDS DB instances. The control fails if an RDS DB instance isn't configured with multiple Availability Zones (AZs). This control doesn't apply to RDS DB instances that are part of a Multi-AZ DB cluster deployment.",
+    "rationale": "This control checks whether high availability is enabled for your RDS DB instances. The control fails if an RDS DB instance isn't configured with multiple Availability Zones (AZs). This control doesn't apply to RDS DB instances that are part of a Multi-AZ DB cluster deployment.",
+    "remediation": "To deploy your DB instances in multiple AZs, Modifying a DB instance to be a Multi-AZ DB instance deployment in the Amazon RDS User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::RDS::DBInstance"
+  },
+  {
+    "id": "RDS.13",
+    "title": "RDS automatic minor version upgrades should be enabled",
+    "description": "This control checks whether automatic minor version upgrades are enabled for the RDS database instance.",
+    "rationale": "This control checks whether automatic minor version upgrades are enabled for the RDS database instance.",
+    "remediation": "To enable automatic minor version upgrades for an existing DB instance, see Modifying an Amazon RDS DB instance in the Amazon RDS User Guide. For Auto minor version upgrade, select Yes.",
+    "severity": "HIGH",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::RDS::DBInstance"
+  },
+  {
+    "id": "RDS.15",
+    "title": "RDS DB clusters should be configured for multiple Availability Zones",
+    "description": "This control checks whether high availability is enabled for your RDS DB clusters. The control fails if an RDS DB cluster isn't deployed in multiple Availability Zones (AZs).",
+    "rationale": "This control checks whether high availability is enabled for your RDS DB clusters. The control fails if an RDS DB cluster isn't deployed in multiple Availability Zones (AZs).",
+    "remediation": "To deploy your DB clusters in multiple AZs, Modifying a DB instance to be a Multi-AZ DB instance deployment in the Amazon RDS User Guide. Remediation steps differ for Aurora global databases. To configure multiple Availability Zones for an Aurora global database, select your DB cluster. Then, choose Actions and Add reader, and specify multiple AZs. For more information, see Adding Aurora Replicas to a DB cluster in the Amazon Aurora User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::RDS::DBCluster"
+  },
+  {
+    "id": "S3.1",
+    "title": "S3 general purpose buckets should have block public access settings enabled",
+    "description": "This control checks whether the preceding Amazon S3 block public access settings are configured at the account level for an S3 general purpose bucket. The control fails if one or more of the block public access settings are set to false.",
+    "rationale": "This control checks whether the preceding Amazon S3 block public access settings are configured at the account level for an S3 general purpose bucket. The control fails if one or more of the block public access settings are set to false.",
+    "remediation": "To enable Amazon S3 Block Public Access for your AWS account, see Configuring block public access settings for your account in the Amazon Simple Storage Service User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "S3.5",
+    "title": "S3 general purpose buckets should require requests to use SSL",
+    "description": "This control checks whether an Amazon S3 general purpose bucket has a policy that requires requests to use SSL. The control fails if the bucket policy doesn't require requests to use SSL.",
+    "rationale": "This control checks whether an Amazon S3 general purpose bucket has a policy that requires requests to use SSL. The control fails if the bucket policy doesn't require requests to use SSL.",
+    "remediation": "To update an Amazon S3 bucket policy to deny nonsecure transport, see Adding a bucket policy by using the Amazon S3 console in the Amazon Simple Storage Service User Guide. Add a policy statement similar to the one in the following policy. Replace amzn-s3-demo-bucket with the name of the bucket you're modifying. JSON { \"Id\": \"ExamplePolicy\", \"Version\":\"2012-10-17\", \"Statement\": [ { \"Sid\": \"AllowSSLRequestsOnly\", \"Action\": \"s3:*\", \"Effect\": \"Deny\", \"Resource\": [ \"arn:aws:s3:::amzn-s3-demo-bucket\", \"arn:aws:s3:::amzn-s3-demo-bucket/*\" ], \"Condition\": { Controls reference 1231 AWS Security Hub User Guide ] \"Bool\": { } \"aws:SecureTransport\": \"false\" } }, \"Principal\": \"*\" }",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::S3::Bucket"
+  },
+  {
+    "id": "S3.8",
+    "title": "S3 general purpose buckets should block public access",
+    "description": "This control checks whether an Amazon S3 general purpose bucket blocks public access at the bucket level. The control fails if any of the following settings are set to false:",
+    "rationale": "This control checks whether an Amazon S3 general purpose bucket blocks public access at the bucket level. The control fails if any of the following settings are set to false:",
+    "remediation": "For information on how to remove public access at a bucket level, see Blocking public access to your Amazon S3 storage in the Amazon S3 User Guide.",
+    "severity": "HIGH",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::S3::Bucket"
+  },
+  {
+    "id": "S3.20",
+    "title": "S3 general purpose buckets should have MFA delete enabled",
+    "description": "This control checks whether multi-factor authentication (MFA) delete is enabled for an Amazon S3 general purpose bucket. The control fails if MFA delete is not enabled for the bucket. The control doesn't produce findings for buckets that have a lifecycle configuration.",
+    "rationale": "This control checks whether multi-factor authentication (MFA) delete is enabled for an Amazon S3 general purpose bucket. The control fails if MFA delete is not enabled for the bucket. The control doesn't produce findings for buckets that have a lifecycle configuration.",
+    "remediation": "For information about enabling versioning and configuring MFA delete for an S3 bucket, see Configuring MFA delete in the Amazon Simple Storage Service User Guide. Controls reference 1247 AWS Security Hub User Guide",
+    "severity": "LOW",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::S3::Bucket"
+  },
+  {
+    "id": "S3.22",
+    "title": "S3 general purpose buckets should log object-level write events",
+    "description": "This control checks whether an AWS account has at least one AWS CloudTrail multi-Region trail that logs all write data events for Amazon S3 buckets. The control fails if the account doesn't have a multi-Region trail that logs write data events for S3 buckets.",
+    "rationale": "This control checks whether an AWS account has at least one AWS CloudTrail multi-Region trail that logs all write data events for Amazon S3 buckets. The control fails if the account doesn't have a multi-Region trail that logs write data events for S3 buckets.",
+    "remediation": "To enable object-level logging for S3 buckets, see Enabling CloudTrail event logging for S3 buckets and objects in the Amazon Simple Storage Service User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::::Account"
+  },
+  {
+    "id": "S3.23",
+    "title": "S3 general purpose buckets should log object-level read events",
+    "description": "This control checks whether an AWS account has at least one AWS CloudTrail multi-Region trail that logs all read data events for Amazon S3 buckets. The control fails if the account doesn't have a multi-Region trail that logs read data events for S3 buckets.",
+    "rationale": "This control checks whether an AWS account has at least one AWS CloudTrail multi-Region trail that logs all read data events for Amazon S3 buckets. The control fails if the account doesn't have a multi-Region trail that logs read data events for S3 buckets.",
+    "remediation": "To enable object-level logging for S3 buckets, see Enabling CloudTrail event logging for S3 buckets and objects in the Amazon Simple Storage Service User Guide.",
+    "severity": "MEDIUM",
+    "resourceType": "STORAGE",
+    "awsResourceType": "AWS::::Account"
+  }
+]
